@@ -10,5 +10,6 @@ int main()
 	};
 
 	png_write(&png, data, 10);
-	print_png_raw(&png);
+	png_dump(&png, "testfile");
+	/*print_png_raw(&png);*/
 }

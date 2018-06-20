@@ -37,7 +37,7 @@ struct chunk {
 	// chunk type: 4 case-sensitive ascii chars
 	uint32_t type;
 	// chunk data, zlib compressed
-	unsigned char *data;
+	uint8_t  *data;
 	// crc-32 of type + data
 	uint32_t crc;
 };
