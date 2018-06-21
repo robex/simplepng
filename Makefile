@@ -6,3 +6,9 @@ filter.o: filter.c
 	gcc -g -c -o filter.o filter.c -Wall
 crc.o: crc.c crc.h
 	gcc -g -c -o crc.o crc.c -Wall -lz
+
+lib: 
+	gcc -c -fpic -o png.o png.c
+	gcc -c -fpic -o crc.o crc.c
+	gcc -c -fpic -o filter.o filter.c
+	gcc -shared -o libsimplepng.so png.o filter.o crc.o
