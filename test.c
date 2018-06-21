@@ -26,7 +26,9 @@ void test_8_bit_grey()
 	}
 
 	png_write(&png, fil_data, size);
-	png_dump(&png, "samples/testfile_8bit_grey");
+	if (!png_dump(&png, "samples/testfile_8bit_grey")) {
+		printf("png_dump: error writing to directory\n");
+	}
 	free(fil_data);
 	png_close(&png);
 }
@@ -56,7 +58,9 @@ void test_16_bit_grey()
 	}
 
 	png_write(&png, fil_data, size);
-	png_dump(&png, "samples/testfile_16bit_grey");
+	if (!png_dump(&png, "samples/testfile_16bit_grey")) {
+		printf("png_dump: error writing to directory\n");
+	}
 	free(fil_data);
 	png_close(&png);
 }
@@ -97,7 +101,10 @@ void test_8_bit_rgb()
 	}
 
 	png_write(&png, fil_data, 20);
-	png_dump(&png, "samples/testfile_8bit_rgb");
+	if (!png_dump(&png, "samples/testfile_8bit_rgb")) {
+		printf("png_dump: error writing to directory\n");
+	}
+
 	free(fil_data);
 	png_close(&png);
 }
@@ -138,7 +145,9 @@ void test_16_bit_rgb()
 	}
 
 	png_write(&png, fil_data, 38);
-	png_dump(&png, "samples/testfile_16bit_rgb");
+	if (!png_dump(&png, "samples/testfile_16bit_rgb")) {
+		printf("png_dump: error writing to directory\n");
+	}
 	free(fil_data);
 	png_close(&png);
 }
