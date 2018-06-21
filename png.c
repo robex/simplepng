@@ -30,7 +30,8 @@ struct PNG png_init(int width, int height, uint8_t bit_depth,
 	png.IHDR_chunk.compression = 0;
 	png.IHDR_chunk.filter      = 0;
 	png.IHDR_chunk.interlace   = interlace;
-	png.IHDR_chunk.crc = __bswap_32(crc(png.IHDR_chunk.type, 17));
+	png.IHDR_chunk.crc = __bswap_32(crc(png.IHDR_chunk.type, 
+					IHDR_SIZE_NO_CRC));
 
 	return png;
 }
@@ -43,13 +44,13 @@ void png_write(struct PNG *png, uint8_t *data, int datalen)
 	uint8_t  *compdata   = malloc(compdatalen);
 	char     idat[4]     = {0x49, 0x44, 0x41, 0x54};
 
-	memcpy(&(png->IDAT.type), idat, 4);
+	memcpy(&png->IDAT.type, idat, 4);
 	compress(compdata, &compdatalen, data, datalen);
-	//TODO: free (png_close)
-	png->IDAT.data   = malloc(compdatalen);
-
+	// must be freed with png_close
+	png->IDAT.data = malloc(compdatalen);
 	// copy compressed data
 	memcpy(png->IDAT.data, compdata, compdatalen);
+
 	// crc starts at type (4 bytes), not data
 	uint8_t *crcbytes = malloc(compdatalen + 4);
 	memcpy(crcbytes, &png->IDAT.type, 4);
@@ -62,9 +63,13 @@ void png_write(struct PNG *png, uint8_t *data, int datalen)
 	free(compdata);
 }
 
-void png_dump(struct PNG *png, char *filename)
+/* Returns 1 if successful, 0 otherwise */
+int png_dump(struct PNG *png, char *filename)
 {
-	FILE *f = fopen(filename, "w");
+	FILE *f;
+	if (!(f = fopen(filename, "w")))
+		return 0;
+
 	fwrite(png->header, HEADER_SIZE, 1, f);
 	fwrite(&png->IHDR_chunk.length, 4, 1, f);
 	fwrite(png->IHDR_chunk.type, 4, 1, f);
@@ -87,6 +92,7 @@ void png_dump(struct PNG *png, char *filename)
 	fwrite(&png->IDAT.crc, 4, 1, f);
 	fwrite(png->IEND, IEND_SIZE, 1, f);
 	fclose(f);
+	return 1;
 }
 
 uint8_t *greyscale_filter(struct PNG *png, uint8_t *data,
@@ -96,14 +102,16 @@ uint8_t *greyscale_filter(struct PNG *png, uint8_t *data,
 	int width = __bswap_32(png->IHDR_chunk.width);
 	int height = __bswap_32(png->IHDR_chunk.height);
 
+	int totalwidth = width * (png->IHDR_chunk.bit_depth >> 3) + 1;
+
 	// 1 byte at the beginning, 1 byte per scanline
-	*filteredlen = (width + 1) * height;
+	*filteredlen = totalwidth * height;
 	filtered_data = malloc(*filteredlen);
 
 	for (int i = 0; i < height; i++) {
-		memset(filtered_data + (width + 1) * i, 0, 1);
-		memcpy(filtered_data + 1 + (width + 1) * i,
-		       data + width * i, width);
+		memset(filtered_data + totalwidth * i, 0, 1);
+		memcpy(filtered_data + 1 + totalwidth * i,
+		       data + (totalwidth - 1) * i, totalwidth - 1);
 	}
 
 	return filtered_data;

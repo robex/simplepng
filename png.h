@@ -5,6 +5,7 @@
 #include "crc.h"
 
 #define HEADER_SIZE 8
+#define IHDR_SIZE_NO_CRC 17
 #define IEND_SIZE 12
 
 struct IHDR {
@@ -59,7 +60,7 @@ struct PNG png_init(int width, int height, uint8_t bit_depth,
  * fields */
 void png_write(struct PNG *png, uint8_t *data, int datalen);
 void print_png_raw(struct PNG *png);
-void png_dump(struct PNG *png, char *filename);
+int png_dump(struct PNG *png, char *filename);
 void png_close(struct PNG *png);
 uint8_t *greyscale_filter(struct PNG *png, uint8_t *data,
 			  int *filteredlen);

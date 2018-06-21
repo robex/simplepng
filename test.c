@@ -1,0 +1,68 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include "png.h"
+
+/* 16-bit greyscale (no alpha) */
+void test_16_bit_grey()
+{
+	// 3x2, 16 bit depth, no alpha
+	struct PNG png = png_init(3, 2, 8, 0, 0);
+	// reference filtered data
+	uint8_t ref_data[8] = {
+		0x00, 0x00, 0x22, 0x54, 0x00, 0x8a, 0xbf, 0xff
+	};
+	uint8_t raw_data[6] = {
+		0x00, 0x22, 0x54, 0x8a, 0xbf, 0xff
+	};
+
+	int size;
+	uint8_t *fil_data = greyscale_filter(&png, raw_data, &size);
+
+	if (!memcmp(ref_data, fil_data, 8)) {
+		printf("8bit grey data -> OK\n");
+	} else {
+		printf("8bit grey data -> ERROR\n");
+	}
+
+	png_write(&png, fil_data, size);
+	png_dump(&png, "samples/testfile_8bit_grey");
+	free(fil_data);
+	png_close(&png);
+}
+
+/* 16-bit greyscale (no alpha) */
+void test_8_bit_grey()
+{
+	// 3x2, 8 bit depth, no alpha
+	struct PNG png = png_init(3, 2, 16, 0, 0);
+	// reference filtered data
+	uint8_t ref_data[14] = {
+		0x00, 0x10, 0x00, 0x20, 0x22, 0x30, 0x54, 0x00,
+		0x50, 0x8a, 0x60, 0xbf, 0x70, 0xff
+	};
+	uint8_t raw_data[12] = {
+		0x10, 0x00, 0x20, 0x22, 0x30, 0x54, 0x50, 0x8a,
+		0x60, 0xbf, 0x70, 0xff
+	};
+
+	int size;
+	uint8_t *fil_data = greyscale_filter(&png, raw_data, &size);
+
+	if (!memcmp(ref_data, fil_data, 14)) {
+		printf("16bit grey data -> OK\n");
+	} else {
+		printf("16bit grey data -> ERROR\n");
+	}
+
+	png_write(&png, fil_data, size);
+	png_dump(&png, "samples/testfile_16bit_grey");
+	free(fil_data);
+	png_close(&png);
+}
+
+int main()
+{
+	test_8_bit_grey();
+	test_16_bit_grey();
+}
