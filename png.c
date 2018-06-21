@@ -55,9 +55,11 @@ void png_write(struct PNG *png, uint8_t *data, int datalen)
 	memcpy(crcbytes, &png->IDAT.type, 4);
 	memcpy(crcbytes + 4, png->IDAT.data, compdatalen);
 	png->IDAT.crc = crc(crcbytes, compdatalen + 4);
-	free(crcbytes);
 	png->IDAT.crc = __bswap_32((uint32_t)png->IDAT.crc);
 	png->IDAT.length = compdatalen;
+
+	free(crcbytes);
+	free(compdata);
 }
 
 void png_dump(struct PNG *png, char *filename)
@@ -85,6 +87,31 @@ void png_dump(struct PNG *png, char *filename)
 	fwrite(&png->IDAT.crc, 4, 1, f);
 	fwrite(png->IEND, IEND_SIZE, 1, f);
 	fclose(f);
+}
+
+uint8_t *greyscale_filter(struct PNG *png, uint8_t *data,
+			  int *filteredlen)
+{
+	uint8_t *filtered_data;
+	int width = __bswap_32(png->IHDR_chunk.width);
+	int height = __bswap_32(png->IHDR_chunk.height);
+
+	// 1 byte at the beginning, 1 byte per scanline
+	*filteredlen = (width + 1) * height;
+	filtered_data = malloc(*filteredlen);
+
+	for (int i = 0; i < height; i++) {
+		memset(filtered_data + (width + 1) * i, 0, 1);
+		memcpy(filtered_data + 1 + (width + 1) * i,
+		       data + width * i, width);
+	}
+
+	return filtered_data;
+}
+
+void png_close(struct PNG *png)
+{
+	free(png->IDAT.data);
 }
 
 void print_png_raw(struct PNG *png)
