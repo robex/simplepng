@@ -160,6 +160,7 @@ void test_open()
 	} else {
 		print_png_raw(&png);
 	}
+	png_close(&png);
 }
 
 int main()
@@ -168,6 +169,6 @@ int main()
 	test_16_bit_grey();
 	test_8_bit_rgb();
 	test_16_bit_rgb();
-
+	printf("\n");
 	test_open();
 }

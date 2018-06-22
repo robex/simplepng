@@ -70,7 +70,27 @@ int copy_idat(struct PNG *png, uint8_t *data, int fsize)
 	uint8_t *idat_type;
 	if ((idat_type = memmem(data, fsize, idat, 4)) == NULL)
 		return 0;
+	memcpy(&png->IDAT.length, idat_type - 4, 4);
+	int length = __bswap_32(png->IDAT.length);
+	memcpy(&png->IDAT.type, idat_type, 4);
+	png->IDAT.data = malloc(length);
+	memcpy(png->IDAT.data, idat_type + 4, length);
+	uint32_t crc_calc = __bswap_32(crc(idat_type, length + 4));
+
+	memcpy(&png->IDAT.crc, idat_type + 4 + length, 4);
+	if (memcmp(&png->IDAT.crc, &crc_calc, 4)) {
+		return 0;
+	}
 	
+	return 1;
+}
+
+int copy_iend(struct PNG *png, uint8_t *data, int fsize)
+{
+	uint8_t *idat_type;
+	if ((idat_type = memmem(data, fsize, iend, 12)) == NULL)
+		return 0;
+	memcpy(&png->IEND, idat_type, 12);
 	return 1;
 }
 
@@ -106,6 +126,8 @@ int png_open(char *filename, struct PNG *png)
 	if (!copy_ihdr(png, data, &pos))
 		return 0;
 	if (!copy_idat(png, data, fsize))
+		return 0;
+	if (!copy_iend(png, data, fsize))
 		return 0;
 	return 1;
 }
@@ -200,21 +222,28 @@ void print_png_raw(struct PNG *png)
 	for (int i = 0; i < HEADER_SIZE; i++) {
 		printf("%02x ", png->header[i] & 0xFF);
 	}
-	printf("\n");
+	printf("\n\n");
 	printf("ihdr: ");
 	printf("length: %08x\n", png->IHDR_chunk.length);
 	printf("type: ");
 	for (int i = 0; i < 4; i++)
-		printf("%02x", png->IHDR_chunk.type[i]);
+		printf("%c", png->IHDR_chunk.type[i]);
 	printf("\nwidth: %08x\n", png->IHDR_chunk.width);
 	printf("height: %08x\n", png->IHDR_chunk.height);
 	printf("bit depth: %02x", png->IHDR_chunk.bit_depth);
+	printf("\n\n");
+	printf("idat:\n");
+	printf("length: %08x\n", __bswap_32(png->IDAT.length));
+	printf("type: ");
+	printf("%08x", png->IDAT.type);
+	printf("\ndata: ");
+	for (int i = 0; i < __bswap_32(png->IDAT.length); i++)
+		printf("%02x", png->IDAT.data[i]);
+	printf("\ncrc: %08x\n", png->IDAT.crc);
 
-	/*for (int i = 0; i < png->IDAT.length; i++) {*/
-		/*printf("%02x ", png->IDAT.data[i] & 0xFF);*/
-	/*}*/
-
-	/*for (int i = 0; i < IEND_SIZE; i++) {*/
-		/*printf("%02x ", png->IEND[i] & 0xFF);*/
-	/*}*/
+	printf("iend:\n");
+	for (int i = 0; i < IEND_SIZE; i++) {
+		printf("%02x" , png->IEND[i] & 0xFF);
+	}
+	printf("\n");
 }
