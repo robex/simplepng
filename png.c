@@ -220,6 +220,7 @@ void print_png_raw(struct PNG *png)
 {
 	int bigendianlen = __bswap_32(png->IDAT.length);
 	uint8_t data_raw[bigendianlen*4];
+
 	printf("#### HEADER ####\n");
 	for (int i = 0; i < HEADER_SIZE; i++) {
 		printf("%02x ", png->header[i] & 0xFF);
@@ -246,16 +247,20 @@ void print_png_raw(struct PNG *png)
 	uint8_t *p = (uint8_t*)&png->IDAT.type;
 	for (int i = 0; i < 4; i++)
 		printf("%c", *p++);
-	printf("\ndata (compressed): ");
-	for (int i = 0; i < bigendianlen; i++)
+	printf("\ndata (compressed):");
+	for (int i = 0; i < bigendianlen; i++) {
+		if (i % 16 == 0) printf("\n");
 		printf("%02x ", png->IDAT.data[i]);
+	}
 	
-	printf("\ndata (raw): ");
+	printf("\ndata (raw):");
 	uint64_t rawlen = bigendianlen;
 	uncompress(data_raw, &rawlen, png->IDAT.data, bigendianlen);
 
-	for (int i = 0; i < rawlen; i++)
+	for (int i = 0; i < rawlen; i++) {
+		if (i % 16 == 0) printf("\n");
 		printf("%02x ", data_raw[i]);
+	}
 	printf("\ncrc: %08x\n", __bswap_32(png->IDAT.crc));
 
 	printf("\n#### IEND ####\n");

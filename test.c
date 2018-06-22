@@ -152,20 +152,11 @@ void test_16_bit_rgb()
 	png_close(&png);
 }
 
-void test_open()
+void test_open(char *filename)
 {
 	struct PNG png;
-	printf("TEST: parse testfile_8bit_grey\n");
-	if (!(png_open("samples/testfile_8bit_grey", &png))) {
-		printf("png_open: error opening png\n");
-	} else {
-		print_png_raw(&png);
-	}
-	png_close(&png);
-
-	printf("\n");
-	printf("TEST: parse grey.png\n");
-	if (!(png_open("samples/grey.png", &png))) {
+	printf(">>> TEST: parse \"%s\"\n", filename);
+	if (!(png_open(filename, &png))) {
 		printf("png_open: error opening png\n");
 	} else {
 		print_png_raw(&png);
@@ -179,6 +170,11 @@ int main()
 	test_16_bit_grey();
 	test_8_bit_rgb();
 	test_16_bit_rgb();
+
 	printf("\n");
-	test_open();
+	test_open("samples/testfile_8bit_grey");
+	printf("\n");
+	test_open("samples/grey.png");
+	printf("\n");
+	test_open("samples/grad.png");
 }
