@@ -14,6 +14,8 @@ int apply_filter(struct PNG *png, uint8_t *data, int *filteredlen,
 	int alpha = 0;
 	switch (png->IHDR_chunk.color_type) {
 	case 0:
+		if (png->IHDR_chunk.bit_depth < 8)
+			return 0;
 		bpp = 1;
 		break;
 	case 2:
@@ -25,14 +27,15 @@ int apply_filter(struct PNG *png, uint8_t *data, int *filteredlen,
 		break;
 	case 6:
 		bpp = 3;
-		alpha = 3;
+		alpha = 1;
 		break;
 	default:
 		return 0;
 	}
 
-	int totalwidth = width * bpp * (png->IHDR_chunk.bit_depth >> 3)
-			 + alpha + 1;
+	bpp *= (png->IHDR_chunk.bit_depth >> 3);
+	bpp += alpha;
+	int totalwidth = width * bpp + 1;
 
 	// 1 byte at the beginning, 1 byte per scanline
 	*filteredlen = totalwidth * height;
