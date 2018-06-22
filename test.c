@@ -17,7 +17,8 @@ void test_8_bit_grey()
 	};
 
 	int size;
-	uint8_t *fil_data = greyscale_filter(&png, raw_data, &size);
+	uint8_t *fil_data;
+	apply_filter(&png, raw_data, &size, &fil_data);
 
 	if (!memcmp(ref_data, fil_data, 8)) {
 		printf("8bit grey data -> OK\n");
@@ -49,7 +50,8 @@ void test_16_bit_grey()
 	};
 
 	int size;
-	uint8_t *fil_data = greyscale_filter(&png, raw_data, &size);
+	uint8_t *fil_data;
+	apply_filter(&png, raw_data, &size, &fil_data);
 
 	if (!memcmp(ref_data, fil_data, 14)) {
 		printf("16bit grey data -> OK\n");
@@ -92,7 +94,8 @@ void test_8_bit_rgb()
 	};
 
 	int size;
-	uint8_t *fil_data = rgb_filter(&png, raw_data, &size);
+	uint8_t *fil_data;
+	apply_filter(&png, raw_data, &size, &fil_data);
 
 	if (!memcmp(ref_data, fil_data, 20)) {
 		printf("8bit rgb data -> OK\n");
@@ -136,7 +139,8 @@ void test_16_bit_rgb()
 	};
 
 	int size;
-	uint8_t *fil_data = rgb_filter(&png, raw_data, &size);
+	uint8_t *fil_data;
+	apply_filter(&png, raw_data, &size, &fil_data);
 
 	if (!memcmp(ref_data, fil_data, 38)) {
 		printf("16bit rgb data -> OK\n");
@@ -171,10 +175,10 @@ int main()
 	test_8_bit_rgb();
 	test_16_bit_rgb();
 
-	printf("\n");
-	test_open("samples/testfile_8bit_grey");
-	printf("\n");
-	test_open("samples/grey.png");
-	printf("\n");
-	test_open("samples/grad.png");
+	/*printf("\n");*/
+	/*test_open("samples/testfile_8bit_grey");*/
+	/*printf("\n");*/
+	/*test_open("samples/grey.png");*/
+	/*printf("\n");*/
+	/*test_open("samples/grad.png");*/
 }
