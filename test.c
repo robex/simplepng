@@ -151,10 +151,23 @@ void test_16_bit_rgb()
 	free(fil_data);
 	png_close(&png);
 }
+
+void test_open()
+{
+	struct PNG png;
+	if (!(png_open("samples/testfile_8bit_grey", &png))) {
+		printf("png_open: error opening png\n");
+	} else {
+		print_png_raw(&png);
+	}
+}
+
 int main()
 {
 	test_8_bit_grey();
 	test_16_bit_grey();
 	test_8_bit_rgb();
 	test_16_bit_rgb();
+
+	test_open();
 }

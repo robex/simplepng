@@ -8,6 +8,11 @@
 #define IHDR_SIZE_NO_CRC 17
 #define IEND_SIZE 12
 
+uint8_t head[HEADER_SIZE];
+uint8_t iend[IEND_SIZE];
+uint8_t ihdr_type[4];
+uint8_t idat[4];
+
 struct IHDR {
 	// width and height, in pixels
 	uint32_t length;
@@ -54,6 +59,7 @@ struct PNG {
 	uint8_t IEND[IEND_SIZE];
 };
 
+int png_open(char *filename, struct PNG *png);
 struct PNG png_init(int width, int height, uint8_t bit_depth,
 		    uint8_t color_type, uint8_t interlace);
 /* Write png data stream into struct png, setting up all necessary
