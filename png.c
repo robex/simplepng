@@ -218,32 +218,49 @@ void png_close(struct PNG *png)
 
 void print_png_raw(struct PNG *png)
 {
-	printf("header: ");
+	int bigendianlen = __bswap_32(png->IDAT.length);
+	uint8_t data_raw[bigendianlen*4];
+	printf("#### HEADER ####\n");
 	for (int i = 0; i < HEADER_SIZE; i++) {
 		printf("%02x ", png->header[i] & 0xFF);
 	}
 	printf("\n\n");
-	printf("ihdr: ");
+	printf("#### IHDR ####\n");
 	printf("length: %08x\n", png->IHDR_chunk.length);
 	printf("type: ");
 	for (int i = 0; i < 4; i++)
 		printf("%c", png->IHDR_chunk.type[i]);
-	printf("\nwidth: %08x\n", png->IHDR_chunk.width);
-	printf("height: %08x\n", png->IHDR_chunk.height);
-	printf("bit depth: %02x", png->IHDR_chunk.bit_depth);
-	printf("\n\n");
-	printf("idat:\n");
-	printf("length: %08x\n", __bswap_32(png->IDAT.length));
-	printf("type: ");
-	printf("%08x", png->IDAT.type);
-	printf("\ndata: ");
-	for (int i = 0; i < __bswap_32(png->IDAT.length); i++)
-		printf("%02x", png->IDAT.data[i]);
-	printf("\ncrc: %08x\n", png->IDAT.crc);
+	printf("\nwidth: %08x\n", __bswap_32(png->IHDR_chunk.width));
+	printf("height: %08x\n", __bswap_32(png->IHDR_chunk.height));
+	printf("bit depth: %02x\n", png->IHDR_chunk.bit_depth);
+	printf("color type: %02x\n", png->IHDR_chunk.color_type);
+	printf("compression: %02x\n", png->IHDR_chunk.compression);
+	printf("filter: %02x\n", png->IHDR_chunk.filter);
+	printf("interlace: %02x\n", png->IHDR_chunk.interlace);
+	printf("crc: %08x\n", __bswap_32(png->IHDR_chunk.crc));
+	printf("\n");
 
-	printf("iend:\n");
+	printf("#### IDAT ####\n");
+	printf("length: %08x\n", bigendianlen);
+	printf("type: ");
+	uint8_t *p = (uint8_t*)&png->IDAT.type;
+	for (int i = 0; i < 4; i++)
+		printf("%c", *p++);
+	printf("\ndata (compressed): ");
+	for (int i = 0; i < bigendianlen; i++)
+		printf("%02x ", png->IDAT.data[i]);
+	
+	printf("\ndata (raw): ");
+	uint64_t rawlen = bigendianlen;
+	uncompress(data_raw, &rawlen, png->IDAT.data, bigendianlen);
+
+	for (int i = 0; i < rawlen; i++)
+		printf("%02x ", data_raw[i]);
+	printf("\ncrc: %08x\n", __bswap_32(png->IDAT.crc));
+
+	printf("\n#### IEND ####\n");
 	for (int i = 0; i < IEND_SIZE; i++) {
-		printf("%02x" , png->IEND[i] & 0xFF);
+		printf("%02x " , png->IEND[i] & 0xFF);
 	}
 	printf("\n");
 }

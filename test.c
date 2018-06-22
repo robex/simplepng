@@ -155,7 +155,17 @@ void test_16_bit_rgb()
 void test_open()
 {
 	struct PNG png;
+	printf("TEST: parse testfile_8bit_grey\n");
 	if (!(png_open("samples/testfile_8bit_grey", &png))) {
+		printf("png_open: error opening png\n");
+	} else {
+		print_png_raw(&png);
+	}
+	png_close(&png);
+
+	printf("\n");
+	printf("TEST: parse grey.png\n");
+	if (!(png_open("samples/grey.png", &png))) {
 		printf("png_open: error opening png\n");
 	} else {
 		print_png_raw(&png);
