@@ -228,4 +228,6 @@ int main()
 	/*test_open("samples/grad.png");*/
 	/*printf("\n");*/
 	/*test_open("samples/rms.png");*/
+	printf("\n");
+	test_open("samples/pngtest.png");
 }

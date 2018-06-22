@@ -54,7 +54,8 @@ struct PNG {
 	// image metadata
 	struct IHDR IHDR_chunk;
 	struct chunk *chunks;
-	struct chunk IDAT;
+	struct chunk *IDAT;
+	int nidat;
 	// last chunk (always the same)
 	uint8_t IEND[IEND_SIZE];
 };

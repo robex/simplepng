@@ -67,22 +67,31 @@ int copy_header(struct PNG *png, uint8_t *data, int *pos)
 
 int copy_idat(struct PNG *png, uint8_t *data, int fsize)
 {
-	uint8_t *idat_type;
-	if ((idat_type = memmem(data, fsize, idat, 4)) == NULL)
-		return 0;
-	memcpy(&png->IDAT.length, idat_type - 4, 4);
-	int length = __bswap_32(png->IDAT.length);
-	memcpy(&png->IDAT.type, idat_type, 4);
-	png->IDAT.data = malloc(length);
-	memcpy(png->IDAT.data, idat_type + 4, length);
-	uint32_t crc_calc = __bswap_32(crc(idat_type, length + 4));
+	uint8_t *idat_type = NULL;
+	png->IDAT = NULL;
+	png->nidat = 0;
+	int i = 0;
+	// while there are no more idat chunks
+	while ((idat_type = memmem(data, fsize, idat, 4)) != NULL) {
+		png->IDAT = realloc(png->IDAT, sizeof(struct chunk) * (i + 1));
+		memcpy(&png->IDAT[i].length, idat_type - 4, 4);
+		int length = __bswap_32(png->IDAT[i].length);
+		memcpy(&png->IDAT[i].type, idat_type, 4);
+		png->IDAT[i].data = malloc(length);
+		memcpy(png->IDAT[i].data, idat_type + 4, length);
+		uint32_t crc_calc = __bswap_32(crc(idat_type, length + 4));
 
-	memcpy(&png->IDAT.crc, idat_type + 4 + length, 4);
-	if (memcmp(&png->IDAT.crc, &crc_calc, 4)) {
-		return 0;
+		memcpy(&png->IDAT[i].crc, idat_type + 4 + length, 4);
+		if (memcmp(&png->IDAT[i].crc, &crc_calc, 4)) {
+			return 0;
+		}
+		i++;
+		png->nidat++;
+		data = idat_type + 4;
+		fsize -= length + 4;
 	}
-	
-	return 1;
+	// didn't go inside the loop
+	return i != 0;
 }
 
 int copy_iend(struct PNG *png, uint8_t *data, int fsize)
@@ -102,7 +111,7 @@ int get_file_size(FILE *f)
 	return fsize;
 }
 
-/* Load png specified in filename into png (must be allocated) */
+/*Load png specified in filename into png (must be allocated)*/
 int png_open(char *filename, struct PNG *png)
 {
 	int pos = 0;
@@ -137,6 +146,7 @@ struct PNG png_init(int width, int height, uint8_t bit_depth,
 {
 	struct PNG png;
 	memcpy(png.header, head, HEADER_SIZE);
+	png.nidat = 0;
 	memcpy(png.IEND, iend, IEND_SIZE);
 	memcpy(png.IHDR_chunk.type, ihdr_type, 4);
 	png.IHDR_chunk.length      = __bswap_32(0x0d);
@@ -159,21 +169,23 @@ void png_write(struct PNG *png, uint8_t *data, int datalen)
 {
 	uint64_t compdatalen = datalen*2;
 	uint8_t  *compdata   = malloc(compdatalen);
+	png->nidat++;
+	png->IDAT = malloc(sizeof(struct chunk));
 
-	memcpy(&png->IDAT.type, idat, 4);
+	memcpy(&png->IDAT[0].type, idat, 4);
 	compress(compdata, &compdatalen, data, datalen);
 	// must be freed with png_close
-	png->IDAT.data = malloc(compdatalen);
+	png->IDAT[0].data = malloc(compdatalen);
 	// copy compressed data
-	memcpy(png->IDAT.data, compdata, compdatalen);
+	memcpy(png->IDAT[0].data, compdata, compdatalen);
 
 	// crc starts at type (4 bytes), not data
 	uint8_t *crcbytes = malloc(compdatalen + 4);
-	memcpy(crcbytes, &png->IDAT.type, 4);
-	memcpy(crcbytes + 4, png->IDAT.data, compdatalen);
-	png->IDAT.crc = crc(crcbytes, compdatalen + 4);
-	png->IDAT.crc = __bswap_32((uint32_t)png->IDAT.crc);
-	png->IDAT.length = compdatalen;
+	memcpy(crcbytes, &png->IDAT[0].type, 4);
+	memcpy(crcbytes + 4, png->IDAT[0].data, compdatalen);
+	png->IDAT[0].crc = crc(crcbytes, compdatalen + 4);
+	png->IDAT[0].crc = __bswap_32((uint32_t)png->IDAT[0].crc);
+	png->IDAT[0].length = compdatalen;
 
 	free(crcbytes);
 	free(compdata);
@@ -197,15 +209,15 @@ int png_dump(struct PNG *png, char *filename)
 	fwrite(&png->IHDR_chunk.filter, 1, 1, f);
 	fwrite(&png->IHDR_chunk.interlace, 1, 1, f);
 	fwrite(&png->IHDR_chunk.crc, 4, 1, f);
-	uint32_t bigendianlen = __bswap_32(png->IDAT.length);
+	uint32_t bigendianlen = __bswap_32(png->IDAT[0].length);
 	fwrite(&bigendianlen, 4, 1, f);
-	fwrite(&png->IDAT.type, 4, 1, f);
+	fwrite(&png->IDAT[0].type, 4, 1, f);
 	/*printf("raw:\n");*/
-	/*for (int i = 0; i < png->IDAT.length; i++) {*/
-		/*printf("%02x ", png->IDAT.data[i] );*/
+	/*for (int i = 0; i < png->IDAT[0].length; i++) {*/
+		/*printf("%02x ", png->IDAT[0].data[i] );*/
 	/*}*/
-	fwrite(png->IDAT.data, 1, png->IDAT.length, f);
-	fwrite(&png->IDAT.crc, 4, 1, f);
+	fwrite(png->IDAT[0].data, 1, png->IDAT[0].length, f);
+	fwrite(&png->IDAT[0].crc, 4, 1, f);
 	fwrite(png->IEND, IEND_SIZE, 1, f);
 	fclose(f);
 	return 1;
@@ -213,12 +225,15 @@ int png_dump(struct PNG *png, char *filename)
 
 void png_close(struct PNG *png)
 {
-	free(png->IDAT.data);
+	for (int i = 0; i < png->nidat; i++) {
+		free(png->IDAT[i].data);
+	}
+	free(png->IDAT);
 }
 
 void print_png_raw(struct PNG *png)
 {
-	int bigendianlen = __bswap_32(png->IDAT.length);
+	int bigendianlen = __bswap_32(png->IDAT[0].length);
 	uint8_t data_raw[bigendianlen*4];
 
 	printf("#### HEADER ####\n");
@@ -241,27 +256,30 @@ void print_png_raw(struct PNG *png)
 	printf("crc: %08x\n", __bswap_32(png->IHDR_chunk.crc));
 	printf("\n");
 
-	printf("#### IDAT ####\n");
-	printf("length: %08x\n", bigendianlen);
-	printf("type: ");
-	uint8_t *p = (uint8_t*)&png->IDAT.type;
-	for (int i = 0; i < 4; i++)
-		printf("%c", *p++);
-	printf("\ndata (compressed):");
-	for (int i = 0; i < bigendianlen; i++) {
-		if (i % 16 == 0) printf("\n");
-		printf("%02x ", png->IDAT.data[i]);
-	}
-	
-	printf("\ndata (raw):");
-	uint64_t rawlen = bigendianlen;
-	uncompress(data_raw, &rawlen, png->IDAT.data, bigendianlen);
+	for (int idats = 0; idats < png->nidat; idats++) {
+		printf("#### IDAT %d ####\n", idats);
+		printf("length: %08x\n", bigendianlen);
+		printf("type: ");
+		uint8_t *p = (uint8_t*)&png->IDAT[idats].type;
+		for (int i = 0; i < 4; i++)
+			printf("%c", *p++);
+		printf("\ndata (compressed):");
+		for (int i = 0; i < bigendianlen; i++) {
+			if (i % 16 == 0) printf("\n");
+			printf("%02x ", png->IDAT[idats].data[i]);
+		}
+		
+		printf("\ndata (raw):");
+		uint64_t rawlen = bigendianlen;
+		uncompress(data_raw, &rawlen, png->IDAT[idats].data,
+			   bigendianlen);
 
-	for (int i = 0; i < rawlen; i++) {
-		if (i % 16 == 0) printf("\n");
-		printf("%02x ", data_raw[i]);
+		for (int i = 0; i < rawlen; i++) {
+			if (i % 16 == 0) printf("\n");
+			printf("%02x ", data_raw[i]);
+		}
+		printf("\ncrc: %08x\n", __bswap_32(png->IDAT[idats].crc));
 	}
-	printf("\ncrc: %08x\n", __bswap_32(png->IDAT.crc));
 
 	printf("\n#### IEND ####\n");
 	for (int i = 0; i < IEND_SIZE; i++) {
