@@ -260,9 +260,8 @@ void print_png_raw(struct PNG *png)
 		printf("#### IDAT %d ####\n", idats);
 		printf("length: %08x\n", bigendianlen);
 		printf("type: ");
-		uint8_t *p = (uint8_t*)&png->IDAT[idats].type;
 		for (int i = 0; i < 4; i++)
-			printf("%c", *p++);
+			printf("%c", png->IDAT[idats].type[i]);
 		printf("\ndata (compressed):");
 		for (int i = 0; i < bigendianlen; i++) {
 			if (i % 16 == 0) printf("\n");

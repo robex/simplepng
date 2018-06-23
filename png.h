@@ -40,7 +40,7 @@ struct chunk {
 	// length of data
 	uint32_t length;
 	// chunk type: 4 case-sensitive ascii chars
-	uint32_t type;
+	uint8_t type[4];
 	// chunk data, zlib compressed
 	uint8_t  *data;
 	// crc-32 of type + data
