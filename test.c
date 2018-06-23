@@ -208,8 +208,8 @@ void test_open(char *filename)
 		printf("png_open: error opening png\n");
 	} else {
 		print_png_raw(&png);
+		png_close(&png);
 	}
-	png_close(&png);
 }
 
 int main()

@@ -2,7 +2,6 @@
 #define PNG_H
 
 #include <stdint.h>
-#include "crc.h"
 
 #define HEADER_SIZE 8
 #define IHDR_SIZE_NO_CRC 17
@@ -74,4 +73,17 @@ void png_close(struct PNG *png);
 int apply_filter(struct PNG *png, uint8_t *data, int *filteredlen,
 		 uint8_t **filtered_data);
 
+
+/* Table of CRCs of all 8-bit messages. */
+extern uint32_t crc_table[256];
+
+/* Update a running CRC with the bytes buf[0..len-1]--the CRC
+should be initialized to all 1's, and the transmitted value
+is the 1's complement of the final running CRC (see the
+crc() routine below). */
+uint32_t update_crc(uint32_t crc, unsigned char *buf,
+			 int len);
+
+/* Return the CRC of the bytes buf[0..len-1]. */
+uint32_t crc(unsigned char *buf, int len);
 #endif

@@ -116,7 +116,7 @@ int png_open(char *filename, struct PNG *png)
 {
 	int pos = 0;
 	FILE *f;
-	if (!(f = fopen(filename, "rb"))) {
+	if ((f = fopen(filename, "rb")) == NULL) {
 		png = NULL;
 		return 0;
 	}
