@@ -41,7 +41,6 @@ int apply_filter(struct PNG *png, uint8_t *data, int *filteredlen,
 	*filteredlen = totalwidth * height;
 	*filtered_data = malloc(*filteredlen);
 
-	//TODO: deal with alpha
 	for (int i = 0; i < height; i++) {
 		memset(*filtered_data + totalwidth * i, 0, 1);
 		memcpy(*filtered_data + 1 + totalwidth * i,
