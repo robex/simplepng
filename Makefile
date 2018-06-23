@@ -1,9 +1,11 @@
-test: test.c png.o crc.o filter.o
-	gcc -g -o test test.c png.o crc.o filter.o -Wall -lz
+test: test.c png.o crc.o filter.o transform.o
+	gcc -g -o test test.c png.o crc.o filter.o transform.o -Wall -lz
 png.o: png.c png.h filter.o
 	gcc -g -c -o png.o png.c -Wall
 filter.o: filter.c
 	gcc -g -c -o filter.o filter.c -Wall
+transform.o: transform.c
+	gcc -g -c -o transform.o transform.c -Wall
 crc.o: crc.c
 	gcc -g -c -o crc.o crc.c -Wall -lz
 

@@ -37,7 +37,7 @@ void test_8_bit_grey()
 /* 8-bit greyscale alpha */
 void test_8_bit_grey_alpha()
 {
-	// 3x2, 8 bit depth, no alpha
+	// 3x2, 8 bit depth, alpha
 	struct PNG png = png_init(3, 2, 8, 4, 0);
 	// reference filtered data
 	uint8_t ref_data[14] = {
@@ -204,12 +204,73 @@ void test_open(char *filename)
 {
 	struct PNG png;
 	printf(">>> TEST: parse \"%s\"\n", filename);
-	if (!(png_open(filename, &png))) {
+	if (!png_open(&png, filename)) {
 		printf("png_open: error opening png\n");
 	} else {
 		print_png_raw(&png);
 		png_close(&png);
 	}
+}
+
+void test_copy(char *in, char *out)
+{
+	struct PNG png;
+	printf(">>> TEST: copy \"%s\" to \"%s\"\n", in, out);
+	if (!png_open(&png, in)) {
+		printf("png_open: error opening png\n");
+	} else {
+		png_dump(&png, out);
+		png_close(&png);
+	}
+
+}
+
+void test_remove_filter()
+{
+	struct PNG png = png_init(3, 2, 8, 4, 0);
+	// reference filtered data
+	uint8_t raw_data[12] = {
+		0x00, 0xFF,
+		0x22, 0xEF,
+		0x54, 0xCF,
+		0x8a, 0xAF,
+		0xbf, 0x7F,
+		0xff, 0x1F
+	};
+
+	int size;
+	uint8_t *fil_data;
+	int sizerem;
+	uint8_t *removed_filter;
+	if (!apply_filter(&png, raw_data, &size, &fil_data)) {
+		printf("Removing filter -> ERROR\n");
+		return;
+	}
+	if (!remove_filter(&png, fil_data, &sizerem, &removed_filter)) {
+		printf("Removing filter -> ERROR\n");
+		return;
+	}
+
+	if (!memcmp(raw_data, removed_filter, 12)) {
+		printf("Removing filter -> OK\n");
+	} else {
+		printf("Removing filter -> ERROR\n");
+	}
+	free(fil_data);
+	free(removed_filter);
+}
+
+void test_invert()
+{
+	printf(">>> TEST: invert png\n");
+	struct PNG png;
+	if (!png_open(&png, "samples/testfile_8bit_grey")) {
+		printf("png_open: error opening png\n");
+		return;
+	}
+	png_invert(&png); 
+	png_dump(&png, "samples/invert_test");
+	png_close(&png);
 }
 
 int main()
@@ -230,4 +291,8 @@ int main()
 	test_open("samples/rms.png");
 	printf("\n");
 	test_open("samples/pngtest.png");
+
+	test_copy("samples/testfile_8bit_grey", "samples/copy_test");
+	test_remove_filter();
+	test_invert();
 }

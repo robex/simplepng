@@ -121,7 +121,7 @@ int get_file_size(FILE *f)
 }
 
 /*Load png specified in filename into png (must be allocated)*/
-int png_open(char *filename, struct PNG *png)
+int png_open(struct PNG *png, char *filename)
 {
 	int pos = 0;
 	FILE *f;
@@ -184,6 +184,10 @@ void png_write(struct PNG *png, uint8_t *data, int datalen)
 {
 	uint64_t compdatalen = datalen*2;
 	uint8_t  *compdata   = malloc(compdatalen);
+	if (png->nidat != 0) {
+		png_close(png);
+		png->nidat = 0;
+	}
 	png->nidat++;
 	png->IDAT = malloc(sizeof(struct chunk));
 
@@ -240,6 +244,16 @@ int png_dump(struct PNG *png, char *filename)
 	fwrite(png->IEND, IEND_SIZE, 1, f);
 	fclose(f);
 	return 1;
+}
+
+uint8_t *png_get_raw_data(struct PNG *png, uint64_t *rawlen)
+{
+		int len = png->IDAT[0].length;
+		uint8_t *data_raw = malloc(len*4);
+		*rawlen = len;
+
+		uncompress(data_raw, rawlen, png->IDAT[0].data, len);
+		return data_raw;
 }
 
 void png_close(struct PNG *png)

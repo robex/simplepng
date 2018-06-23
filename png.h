@@ -59,12 +59,13 @@ struct PNG {
 	uint8_t IEND[IEND_SIZE];
 };
 
-int png_open(char *filename, struct PNG *png);
+int png_open(struct PNG *png, char *filename); 
 struct PNG png_init(int width, int height, uint8_t bit_depth,
 		    uint8_t color_type, uint8_t interlace);
 /* Write png data stream into struct png, setting up all necessary
  * fields */
 void png_write(struct PNG *png, uint8_t *data, int datalen);
+uint8_t *png_get_raw_data(struct PNG *png, uint64_t *rawlen);
 void print_png_raw(struct PNG *png);
 int png_dump(struct PNG *png, char *filename);
 void png_close(struct PNG *png);
@@ -72,7 +73,12 @@ void png_close(struct PNG *png);
 // only free filtered_data if function returns 1
 int apply_filter(struct PNG *png, uint8_t *data, int *filteredlen,
 		 uint8_t **filtered_data);
+// only free raw_data if function returns 1
+int remove_filter(struct PNG *png, uint8_t *filtered_data, int *rawlen,
+		  uint8_t **raw_data);
 
+
+int png_invert(struct PNG *png);
 
 /* Table of CRCs of all 8-bit messages. */
 extern uint32_t crc_table[256];
