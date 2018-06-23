@@ -7,8 +7,8 @@
 int apply_filter(struct PNG *png, uint8_t *data, int *filteredlen,
 		 uint8_t **filtered_data)
 {
-	int width = __bswap_32(png->IHDR_chunk.width);
-	int height = __bswap_32(png->IHDR_chunk.height);
+	int width = png->IHDR_chunk.width;
+	int height = png->IHDR_chunk.height;
 	// bytes per pixel
 	int bpp;
 	int alpha = 0;

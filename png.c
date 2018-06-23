@@ -21,33 +21,39 @@ uint8_t idat[4] = {0x49, 0x44, 0x41, 0x54};
 int copy_ihdr(struct PNG *png, uint8_t *data, int *pos)
 {
 	uint32_t len = __bswap_32(13);
+
 	if (memcmp(data+*pos, &len, 4)) {
 		return 0;
 	}
-	png->IHDR_chunk.length = len;
+	png->IHDR_chunk.length = __bswap_32(len);
 	*pos += 4;
 	// load all fields of ihdr, including crc
 	memcpy(&png->IHDR_chunk.type, data+*pos, 4);
 	*pos += 4;
-	memcpy(&png->IHDR_chunk.width, data+*pos, 4);
+	png->IHDR_chunk.width = *(uint32_t*)(data+*pos);
+	uint32_t lewidth = __bswap_32(png->IHDR_chunk.width);
 	*pos += 4;
-	memcpy(&png->IHDR_chunk.height, data+*pos, 4);
+	png->IHDR_chunk.height = *(uint32_t*)(data+*pos);
+	uint32_t leheight = __bswap_32(png->IHDR_chunk.height);
 	*pos += 4;
-	memcpy(&png->IHDR_chunk.bit_depth, data+*pos, 1);
+	png->IHDR_chunk.bit_depth = *(data+*pos);
 	*pos += 1;
-	memcpy(&png->IHDR_chunk.color_type, data+*pos, 1);
+	png->IHDR_chunk.color_type = *(data+*pos);
 	*pos += 1;
-	memcpy(&png->IHDR_chunk.compression, data+*pos, 1);
+	png->IHDR_chunk.compression = *(data+*pos);
 	*pos += 1;
-	memcpy(&png->IHDR_chunk.filter, data+*pos, 1);
+	png->IHDR_chunk.filter = *(data+*pos);
 	*pos += 1;
-	memcpy(&png->IHDR_chunk.interlace, data+*pos, 1);
+	png->IHDR_chunk.interlace = *(data+*pos);
 	*pos += 1;
-	memcpy(&png->IHDR_chunk.crc, data+*pos, 4);
+	png->IHDR_chunk.crc = *(uint32_t*)(data+*pos);
 	*pos += 4;
 	// is crc correct?
-	uint32_t crc_calc = __bswap_32(crc(png->IHDR_chunk.type,
-					IHDR_SIZE_NO_CRC));
+	uint32_t crc_calc = crc(png->IHDR_chunk.type, IHDR_SIZE_NO_CRC);
+	png->IHDR_chunk.crc = __bswap_32(png->IHDR_chunk.crc);
+	png->IHDR_chunk.width = lewidth;
+	png->IHDR_chunk.height = leheight;
+
 	if (memcmp(&png->IHDR_chunk.crc, &crc_calc, 4)) {
 		return 0;
 	}
@@ -76,12 +82,15 @@ int copy_idat(struct PNG *png, uint8_t *data, int fsize)
 		png->IDAT = realloc(png->IDAT, sizeof(struct chunk) * (i + 1));
 		memcpy(&png->IDAT[i].length, idat_type - 4, 4);
 		int length = __bswap_32(png->IDAT[i].length);
+		// store swapped value
+		png->IDAT[i].length = length;
 		memcpy(&png->IDAT[i].type, idat_type, 4);
 		png->IDAT[i].data = malloc(length);
 		memcpy(png->IDAT[i].data, idat_type + 4, length);
-		uint32_t crc_calc = __bswap_32(crc(idat_type, length + 4));
+		uint32_t crc_calc = crc(idat_type, length + 4);
 
 		memcpy(&png->IDAT[i].crc, idat_type + 4 + length, 4);
+		png->IDAT[i].crc = __bswap_32(png->IDAT[i].crc);
 		if (memcmp(&png->IDAT[i].crc, &crc_calc, 4)) {
 			return 0;
 		}
@@ -130,14 +139,18 @@ int png_open(char *filename, struct PNG *png)
 	if (fsize < 30)
 		return 0;
 
-	if (!copy_header(png, data, &pos))
+	if (!copy_header(png, data, &pos)) {
 		return 0;
-	if (!copy_ihdr(png, data, &pos))
+	}
+	if (!copy_ihdr(png, data, &pos)) {
 		return 0;
-	if (!copy_idat(png, data, fsize))
+	}
+	if (!copy_idat(png, data, fsize)) {
 		return 0;
-	if (!copy_iend(png, data, fsize))
+	}
+	if (!copy_iend(png, data, fsize)) {
 		return 0;
+	}
 	return 1;
 }
 
@@ -157,8 +170,10 @@ struct PNG png_init(int width, int height, uint8_t bit_depth,
 	png.IHDR_chunk.compression = 0;
 	png.IHDR_chunk.filter      = 0;
 	png.IHDR_chunk.interlace   = interlace;
-	png.IHDR_chunk.crc = __bswap_32(crc(png.IHDR_chunk.type, 
-					IHDR_SIZE_NO_CRC));
+	png.IHDR_chunk.crc = crc(png.IHDR_chunk.type, IHDR_SIZE_NO_CRC);
+	png.IHDR_chunk.length      = 0x0d;
+	png.IHDR_chunk.width       = width;
+	png.IHDR_chunk.height      = height;
 
 	return png;
 }
@@ -184,7 +199,6 @@ void png_write(struct PNG *png, uint8_t *data, int datalen)
 	memcpy(crcbytes, &png->IDAT[0].type, 4);
 	memcpy(crcbytes + 4, png->IDAT[0].data, compdatalen);
 	png->IDAT[0].crc = crc(crcbytes, compdatalen + 4);
-	png->IDAT[0].crc = __bswap_32((uint32_t)png->IDAT[0].crc);
 	png->IDAT[0].length = compdatalen;
 
 	free(crcbytes);
@@ -199,25 +213,30 @@ int png_dump(struct PNG *png, char *filename)
 		return 0;
 
 	fwrite(png->header, HEADER_SIZE, 1, f);
-	fwrite(&png->IHDR_chunk.length, 4, 1, f);
+	uint32_t beihdrlen = __bswap_32(png->IHDR_chunk.length);
+	fwrite(&beihdrlen, 4, 1, f);
 	fwrite(png->IHDR_chunk.type, 4, 1, f);
-	fwrite(&png->IHDR_chunk.width, 4, 1, f);
-	fwrite(&png->IHDR_chunk.height, 4, 1, f);
+	uint32_t bewidth = __bswap_32(png->IHDR_chunk.width);
+	fwrite(&bewidth, 4, 1, f);
+	uint32_t beheight = __bswap_32(png->IHDR_chunk.height);
+	fwrite(&beheight, 4, 1, f);
 	fwrite(&png->IHDR_chunk.bit_depth, 1, 1, f);
 	fwrite(&png->IHDR_chunk.color_type, 1, 1, f);
 	fwrite(&png->IHDR_chunk.compression, 1, 1, f);
 	fwrite(&png->IHDR_chunk.filter, 1, 1, f);
 	fwrite(&png->IHDR_chunk.interlace, 1, 1, f);
-	fwrite(&png->IHDR_chunk.crc, 4, 1, f);
-	uint32_t bigendianlen = __bswap_32(png->IDAT[0].length);
-	fwrite(&bigendianlen, 4, 1, f);
+	uint32_t beihdrcrc = __bswap_32(png->IHDR_chunk.crc);
+	fwrite(&beihdrcrc, 4, 1, f);
+	uint32_t beidatlen = __bswap_32(png->IDAT[0].length);
+	fwrite(&beidatlen, 4, 1, f);
 	fwrite(&png->IDAT[0].type, 4, 1, f);
 	/*printf("raw:\n");*/
 	/*for (int i = 0; i < png->IDAT[0].length; i++) {*/
 		/*printf("%02x ", png->IDAT[0].data[i] );*/
 	/*}*/
 	fwrite(png->IDAT[0].data, 1, png->IDAT[0].length, f);
-	fwrite(&png->IDAT[0].crc, 4, 1, f);
+	uint32_t beidatcrc = __bswap_32(png->IDAT[0].crc);
+	fwrite(&beidatcrc, 4, 1, f);
 	fwrite(png->IEND, IEND_SIZE, 1, f);
 	fclose(f);
 	return 1;
@@ -233,8 +252,6 @@ void png_close(struct PNG *png)
 
 void print_png_raw(struct PNG *png)
 {
-	int bigendianlen = __bswap_32(png->IDAT[0].length);
-	uint8_t data_raw[bigendianlen*4];
 
 	printf("#### HEADER ####\n");
 	for (int i = 0; i < HEADER_SIZE; i++) {
@@ -246,38 +263,39 @@ void print_png_raw(struct PNG *png)
 	printf("type: ");
 	for (int i = 0; i < 4; i++)
 		printf("%c", png->IHDR_chunk.type[i]);
-	printf("\nwidth: %08x\n", __bswap_32(png->IHDR_chunk.width));
-	printf("height: %08x\n", __bswap_32(png->IHDR_chunk.height));
+	printf("\nwidth: %08x\n", png->IHDR_chunk.width);
+	printf("height: %08x\n", png->IHDR_chunk.height);
 	printf("bit depth: %02x\n", png->IHDR_chunk.bit_depth);
 	printf("color type: %02x\n", png->IHDR_chunk.color_type);
 	printf("compression: %02x\n", png->IHDR_chunk.compression);
 	printf("filter: %02x\n", png->IHDR_chunk.filter);
 	printf("interlace: %02x\n", png->IHDR_chunk.interlace);
-	printf("crc: %08x\n", __bswap_32(png->IHDR_chunk.crc));
+	printf("crc: %08x\n", png->IHDR_chunk.crc);
 	printf("\n");
 
 	for (int idats = 0; idats < png->nidat; idats++) {
+		int len = png->IDAT[idats].length;
+		uint8_t data_raw[len*4];
 		printf("#### IDAT %d ####\n", idats);
-		printf("length: %08x\n", bigendianlen);
+		printf("length: %08x\n", len);
 		printf("type: ");
 		for (int i = 0; i < 4; i++)
 			printf("%c", png->IDAT[idats].type[i]);
 		printf("\ndata (compressed):");
-		for (int i = 0; i < bigendianlen; i++) {
+		for (int i = 0; i < len; i++) {
 			if (i % 16 == 0) printf("\n");
 			printf("%02x ", png->IDAT[idats].data[i]);
 		}
 		
 		printf("\ndata (raw):");
-		uint64_t rawlen = bigendianlen;
-		uncompress(data_raw, &rawlen, png->IDAT[idats].data,
-			   bigendianlen);
+		uint64_t rawlen = len;
+		uncompress(data_raw, &rawlen, png->IDAT[idats].data, len);
 
 		for (int i = 0; i < rawlen; i++) {
 			if (i % 16 == 0) printf("\n");
 			printf("%02x ", data_raw[i]);
 		}
-		printf("\ncrc: %08x\n", __bswap_32(png->IDAT[idats].crc));
+		printf("\ncrc: %08x\n", png->IDAT[idats].crc);
 	}
 
 	printf("\n#### IEND ####\n");
