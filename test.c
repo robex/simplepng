@@ -264,7 +264,7 @@ void test_invert()
 {
 	printf(">>> TEST: invert png\n");
 	struct PNG png;
-	if (!png_open(&png, "samples/test.png")) {
+	if (!png_open(&png, "samples/ruben_grey.png")) {
 		printf("png_open: error opening png\n");
 		return;
 	}
@@ -305,10 +305,10 @@ int main()
 	/*printf("\n");*/
 	/*test_open("samples/pngtest.png");*/
 	/*printf("\n");*/
-	/*test_open("samples/test.png");*/
+	/*test_open("samples/ruben_grey.png");*/
 
-	test_copy("samples/testfile_8bit_grey", "samples/copy_test");
-	test_remove_filter();
+	/*test_copy("samples/testfile_8bit_grey", "samples/copy_test");*/
+	/*test_remove_filter();*/
 	test_invert();
-	test_swap();
+	/*test_swap();*/
 }
