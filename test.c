@@ -273,6 +273,19 @@ void test_invert()
 	png_close(&png);
 }
 
+void test_swap()
+{
+	printf(">>> TEST: swap png\n");
+	struct PNG png;
+	if (!png_open(&png, "samples/testfile_8bit_grey")) {
+		printf("png_open: error opening png\n");
+		return;
+	}
+	png_swap(&png); 
+	png_dump(&png, "samples/swap_test");
+	png_close(&png);
+}
+
 int main()
 {
 	test_8_bit_grey();
@@ -295,4 +308,5 @@ int main()
 	test_copy("samples/testfile_8bit_grey", "samples/copy_test");
 	test_remove_filter();
 	test_invert();
+	test_swap();
 }

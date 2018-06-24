@@ -79,6 +79,7 @@ int remove_filter(struct PNG *png, uint8_t *filtered_data, int *rawlen,
 
 
 int png_invert(struct PNG *png);
+int png_swap(struct PNG *png);
 
 /* Table of CRCs of all 8-bit messages. */
 extern uint32_t crc_table[256];

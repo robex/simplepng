@@ -131,6 +131,7 @@ int png_open(struct PNG *png, char *filename)
 	}
 	int fsize = get_file_size(f);
 
+	// TODO: valgrind complains about uninitialized
 	uint8_t data[fsize];
 	fread(data, fsize, 1, f);
 	fclose(f);
@@ -246,6 +247,7 @@ int png_dump(struct PNG *png, char *filename)
 	return 1;
 }
 
+/* Returns raw (filtered) data and its length in rawlen */
 uint8_t *png_get_raw_data(struct PNG *png, uint64_t *rawlen)
 {
 		int len = png->IDAT[0].length;
