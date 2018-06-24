@@ -251,8 +251,11 @@ int png_dump(struct PNG *png, char *filename)
 uint8_t *png_get_raw_data(struct PNG *png, uint64_t *rawlen)
 {
 		int len = png->IDAT[0].length;
-		uint8_t *data_raw = malloc(len*4);
-		*rawlen = len;
+		int bpp;
+		png_calc_bpp(png, &bpp);
+		*rawlen = (png->IHDR_chunk.width * bpp + 1)
+				  * png->IHDR_chunk.height;
+		uint8_t *data_raw = malloc(*rawlen);
 
 		uncompress(data_raw, rawlen, png->IDAT[0].data, len);
 		return data_raw;
@@ -291,7 +294,11 @@ void print_png_raw(struct PNG *png)
 
 	for (int idats = 0; idats < png->nidat; idats++) {
 		int len = png->IDAT[idats].length;
-		uint8_t data_raw[len*4];
+		int bpp;
+		png_calc_bpp(png, &bpp);
+		uint64_t rawlen = (png->IHDR_chunk.width * bpp + 1)
+				  * png->IHDR_chunk.height;
+		uint8_t data_raw[rawlen];
 		printf("#### IDAT %d ####\n", idats);
 		printf("length: %08x\n", len);
 		printf("type: ");
@@ -304,9 +311,8 @@ void print_png_raw(struct PNG *png)
 		}
 		
 		printf("\ndata (raw):");
-		uint64_t rawlen = len;
-		uncompress(data_raw, &rawlen, png->IDAT[idats].data, len);
 
+		uncompress(data_raw, &rawlen, png->IDAT[idats].data, len);
 		for (int i = 0; i < rawlen; i++) {
 			if (i % 16 == 0) printf("\n");
 			printf("%02x ", data_raw[i]);

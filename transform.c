@@ -31,20 +31,22 @@ int write_unfiltered(struct PNG *png, uint8_t *raw_data)
 }
 
 
+/* Invert color */
 int png_invert(struct PNG *png)
 {
 	int raw_len;
 	uint8_t *raw_data;
 
 	raw_data = get_unfiltered(png, &raw_len);
-	for (int i = 0; i < raw_len; i++)
-	{
+	for (int i = 0; i < raw_len; i++) {
 		raw_data[i] = 0xFF - raw_data[i];
 	}
-	write_unfiltered(png, raw_data);
+	if (!write_unfiltered(png, raw_data))
+		return 0;
 	return 1;
 }
 
+/* Swap each pixel with its right neighbour */
 int png_swap(struct PNG *png)
 {
 	int raw_len;
@@ -52,8 +54,7 @@ int png_swap(struct PNG *png)
 
 	raw_data = get_unfiltered(png, &raw_len);
 	uint8_t tmp;
-	for (int i = 0; i < raw_len-1; i+=2)
-	{
+	for (int i = 0; i < raw_len-1; i+=2) {
 		tmp = raw_data[i];
 		raw_data[i] = raw_data[i+1];
 		raw_data[i+1] = tmp;

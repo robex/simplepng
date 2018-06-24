@@ -70,6 +70,8 @@ void print_png_raw(struct PNG *png);
 int png_dump(struct PNG *png, char *filename);
 void png_close(struct PNG *png);
 
+/* Get the bytes per pixel (including alpha) of *png */
+int png_calc_bpp(struct PNG *png, int *bpp);
 // only free filtered_data if function returns 1
 int apply_filter(struct PNG *png, uint8_t *data, int *filteredlen,
 		 uint8_t **filtered_data);

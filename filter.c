@@ -1,10 +1,11 @@
 #include <string.h>
+#include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include "png.h"
 
 /* Get the bytes per pixel (including alpha) of *png */
-int calc_bpp(struct PNG *png, int *bpp)
+int png_calc_bpp(struct PNG *png, int *bpp)
 {
 	int alpha = 0;
 	switch (png->IHDR_chunk.color_type) {
@@ -41,7 +42,7 @@ int apply_filter(struct PNG *png, uint8_t *data, int *filteredlen,
 	// bytes per pixel
 	int bpp;
 
-	if (!calc_bpp(png, &bpp))
+	if (!png_calc_bpp(png, &bpp))
 		return 0;
 
 	int totalwidth = width * bpp + 1;
@@ -67,7 +68,7 @@ int remove_filter(struct PNG *png, uint8_t *filtered_data, int *rawlen,
 	// bytes per pixel
 	int bpp;
 
-	if (!calc_bpp(png, &bpp))
+	if (!png_calc_bpp(png, &bpp))
 		return 0;
 
 	int rawwidth = width * bpp;
