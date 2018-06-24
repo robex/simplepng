@@ -96,8 +96,8 @@ int copy_idat(struct PNG *png, uint8_t *data, int fsize)
 		}
 		i++;
 		png->nidat++;
-		data = idat_type + 4;
-		fsize -= length + 4;
+		data = idat_type + length;
+		fsize -= length;
 	}
 	// didn't go inside the loop
 	return i != 0;
@@ -232,16 +232,14 @@ int png_dump(struct PNG *png, char *filename)
 	fwrite(&png->IHDR_chunk.interlace, 1, 1, f);
 	uint32_t beihdrcrc = __bswap_32(png->IHDR_chunk.crc);
 	fwrite(&beihdrcrc, 4, 1, f);
-	uint32_t beidatlen = __bswap_32(png->IDAT[0].length);
-	fwrite(&beidatlen, 4, 1, f);
-	fwrite(&png->IDAT[0].type, 4, 1, f);
-	/*printf("raw:\n");*/
-	/*for (int i = 0; i < png->IDAT[0].length; i++) {*/
-		/*printf("%02x ", png->IDAT[0].data[i] );*/
-	/*}*/
-	fwrite(png->IDAT[0].data, 1, png->IDAT[0].length, f);
-	uint32_t beidatcrc = __bswap_32(png->IDAT[0].crc);
-	fwrite(&beidatcrc, 4, 1, f);
+	for (int i = 0; i < png->nidat; i++) {
+		uint32_t beidatlen = __bswap_32(png->IDAT[i].length);
+		fwrite(&beidatlen, 4, 1, f);
+		fwrite(&png->IDAT[i].type, 4, 1, f);
+		fwrite(png->IDAT[i].data, 1, png->IDAT[i].length, f);
+		uint32_t beidatcrc = __bswap_32(png->IDAT[i].crc);
+		fwrite(&beidatcrc, 4, 1, f);
+	}
 	fwrite(png->IEND, IEND_SIZE, 1, f);
 	fclose(f);
 	return 1;
@@ -250,15 +248,22 @@ int png_dump(struct PNG *png, char *filename)
 /* Returns raw (filtered) data and its length in rawlen */
 uint8_t *png_get_raw_data(struct PNG *png, uint64_t *rawlen)
 {
-		int len = png->IDAT[0].length;
-		int bpp;
-		png_calc_bpp(png, &bpp);
-		*rawlen = (png->IHDR_chunk.width * bpp + 1)
-				  * png->IHDR_chunk.height;
-		uint8_t *data_raw = malloc(*rawlen);
+	int bpp;
+	png_calc_bpp(png, &bpp);
+	*rawlen = (png->IHDR_chunk.width*bpp+1) * png->IHDR_chunk.height;
+	uint8_t *data_raw = malloc(*rawlen);
+	uint8_t *tmp = malloc(*rawlen);
+	int pos = 0;
+	int len = 0;
 
-		uncompress(data_raw, rawlen, png->IDAT[0].data, len);
-		return data_raw;
+	for (int i = 0; i < png->nidat; i++) {
+		memcpy(tmp + len, png->IDAT[i].data, png->IDAT[i].length);
+		len += png->IDAT[i].length;
+	}
+	uncompress(data_raw, rawlen, tmp, len);
+	*rawlen = pos;
+	free(tmp);
+	return data_raw;
 }
 
 void png_close(struct PNG *png)

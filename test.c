@@ -264,7 +264,7 @@ void test_invert()
 {
 	printf(">>> TEST: invert png\n");
 	struct PNG png;
-	if (!png_open(&png, "samples/ruben_grey.png")) {
+	if (!png_open(&png, "samples/rms.png")) {
 		printf("png_open: error opening png\n");
 		return;
 	}
@@ -294,21 +294,22 @@ int main()
 	test_8_bit_rgb();
 	test_16_bit_rgb();
 
-	/*printf("\n");*/
-	/*test_open("samples/testfile_8bit_grey");*/
-	/*printf("\n");*/
-	/*test_open("samples/grey.png");*/
-	/*printf("\n");*/
-	/*test_open("samples/grad.png");*/
-	/*printf("\n");*/
-	/*test_open("samples/rms.png");*/
-	/*printf("\n");*/
-	/*test_open("samples/pngtest.png");*/
-	/*printf("\n");*/
-	/*test_open("samples/ruben_grey.png");*/
+	printf("\n");
+	test_open("samples/testfile_8bit_grey");
+	printf("\n");
+	test_open("samples/grey.png");
+	printf("\n");
+	test_open("samples/grad.png");
+	printf("\n");
+	test_open("samples/rms.png");
+	printf("\n");
+	test_open("samples/pngtest.png");
+	printf("\n");
+	test_open("samples/ruben_grey.png");
 
-	/*test_copy("samples/testfile_8bit_grey", "samples/copy_test");*/
-	/*test_remove_filter();*/
+	test_copy("samples/testfile_8bit_grey", "samples/copy_test");
+	test_copy("samples/rms.png", "samples/copy_test");
+	test_remove_filter();
 	test_invert();
-	/*test_swap();*/
+	test_swap();
 }
