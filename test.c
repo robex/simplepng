@@ -286,14 +286,11 @@ void test_swap()
 	png_close(&png);
 }
 
-void test_rotate()
+void test_rotate(char *filename)
 {
-	printf(">>> TEST: rotate png\n");
+	printf(">>> TEST: rotate png %s\n", filename);
 	struct PNG png;
-	/*if (!png_open(&png, "samples/rms16alpha.png")) {*/
-	if (!png_open(&png, "samples/text.png")) {
-	/*if (!png_open(&png, "samples/ruben_grey.png")) {*/
-	/*if (!png_open(&png, "samples/rgb16alpha.png")) {*/
+	if (!png_open(&png, filename)) {
 		printf("png_open: error opening png\n");
 		return;
 	}
@@ -327,6 +324,6 @@ int main()
 	test_copy("samples/rms.png", "samples/copy_test");
 	test_remove_filter();
 	test_invert();
-	test_rotate();
+	test_rotate("samples/rms16alpha.png");
 	test_swap();
 }

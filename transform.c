@@ -66,7 +66,6 @@ int png_rotate(struct PNG *png)
 	int height = png->IHDR_chunk.height;
 	uint8_t *transp = malloc(raw_len);
 	int bpp;
-	int alpha = png_calc_alpha(png);
 	if (!png_calc_bpp(png, &bpp))
 		return 0;
 
