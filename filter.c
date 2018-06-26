@@ -8,6 +8,8 @@
 int png_calc_bpp(struct PNG *png, int *bpp)
 {
 	int alpha = 0;
+	int bit_depth_bytes = png->IHDR_chunk.bit_depth >> 3;
+
 	switch (png->IHDR_chunk.color_type) {
 	case 0:
 		if (png->IHDR_chunk.bit_depth < 8)
@@ -29,9 +31,16 @@ int png_calc_bpp(struct PNG *png, int *bpp)
 		return 0;
 	}
 
-	*bpp *= (png->IHDR_chunk.bit_depth >> 3);
+	*bpp *= bit_depth_bytes;
+	alpha *= bit_depth_bytes;
 	*bpp += alpha;
 	return 1;
+}
+
+int png_calc_alpha(struct PNG *png)
+{
+	return png->IHDR_chunk.color_type > 3 ?
+	       png->IHDR_chunk.bit_depth >> 3 : 0;
 }
 
 int apply_filter(struct PNG *png, uint8_t *data, int *filteredlen,

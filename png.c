@@ -163,18 +163,14 @@ struct PNG png_init(int width, int height, uint8_t bit_depth,
 	png.nidat = 0;
 	memcpy(png.IEND, iend, IEND_SIZE);
 	memcpy(png.IHDR_chunk.type, ihdr_type, 4);
-	png.IHDR_chunk.length      = __bswap_32(0x0d);
-	png.IHDR_chunk.width       = __bswap_32(width);
-	png.IHDR_chunk.height      = __bswap_32(height);
+	png.IHDR_chunk.length      = 0x0d;
+	png.IHDR_chunk.width       = width;
+	png.IHDR_chunk.height      = height;
 	png.IHDR_chunk.bit_depth   = bit_depth;
 	png.IHDR_chunk.color_type  = color_type;
 	png.IHDR_chunk.compression = 0;
 	png.IHDR_chunk.filter      = 0;
 	png.IHDR_chunk.interlace   = interlace;
-	png.IHDR_chunk.crc = crc(png.IHDR_chunk.type, IHDR_SIZE_NO_CRC);
-	png.IHDR_chunk.length      = 0x0d;
-	png.IHDR_chunk.width       = width;
-	png.IHDR_chunk.height      = height;
 
 	return png;
 }
@@ -217,13 +213,21 @@ int png_dump(struct PNG *png, char *filename)
 	if (!(f = fopen(filename, "wb")))
 		return 0;
 
+	png->IHDR_chunk.length = __bswap_32(png->IHDR_chunk.length);
+	png->IHDR_chunk.width = __bswap_32(png->IHDR_chunk.width);
+	png->IHDR_chunk.height = __bswap_32(png->IHDR_chunk.height);
+	png->IHDR_chunk.crc = crc(png->IHDR_chunk.type, IHDR_SIZE_NO_CRC);
+	uint32_t beihdrlen = png->IHDR_chunk.length;
+	uint32_t bewidth = png->IHDR_chunk.width;
+	uint32_t beheight = png->IHDR_chunk.height;
+	png->IHDR_chunk.length = __bswap_32(png->IHDR_chunk.length);
+	png->IHDR_chunk.width = __bswap_32(png->IHDR_chunk.width);
+	png->IHDR_chunk.height = __bswap_32(png->IHDR_chunk.height);
+
 	fwrite(png->header, HEADER_SIZE, 1, f);
-	uint32_t beihdrlen = __bswap_32(png->IHDR_chunk.length);
 	fwrite(&beihdrlen, 4, 1, f);
 	fwrite(png->IHDR_chunk.type, 4, 1, f);
-	uint32_t bewidth = __bswap_32(png->IHDR_chunk.width);
 	fwrite(&bewidth, 4, 1, f);
-	uint32_t beheight = __bswap_32(png->IHDR_chunk.height);
 	fwrite(&beheight, 4, 1, f);
 	fwrite(&png->IHDR_chunk.bit_depth, 1, 1, f);
 	fwrite(&png->IHDR_chunk.color_type, 1, 1, f);

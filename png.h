@@ -72,6 +72,8 @@ void png_close(struct PNG *png);
 
 /* Get the bytes per pixel (including alpha) of *png */
 int png_calc_bpp(struct PNG *png, int *bpp);
+int png_calc_alpha(struct PNG *png);
+
 // only free filtered_data if function returns 1
 int apply_filter(struct PNG *png, uint8_t *data, int *filteredlen,
 		 uint8_t **filtered_data);
@@ -82,6 +84,7 @@ int remove_filter(struct PNG *png, uint8_t *filtered_data, int *rawlen,
 
 int png_invert(struct PNG *png);
 int png_swap(struct PNG *png);
+int png_rotate(struct PNG *png);
 
 /* Table of CRCs of all 8-bit messages. */
 extern uint32_t crc_table[256];

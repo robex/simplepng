@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #include "png.h"
 
 uint8_t *get_unfiltered(struct PNG *png, int *raw_len)
@@ -36,11 +37,56 @@ int png_invert(struct PNG *png)
 {
 	int raw_len;
 	uint8_t *raw_data;
+	int bpp;
+	int initialbpp;
+	int alpha = png_calc_alpha(png);
+	if (!png_calc_bpp(png, &bpp))
+		return 0;
+	initialbpp = bpp;
 
 	raw_data = get_unfiltered(png, &raw_len);
 	for (int i = 0; i < raw_len; i++) {
-		raw_data[i] = 0xFF - raw_data[i];
+		if (alpha != 0 && i % (bpp - alpha) == 0 && i != 0) {
+			bpp += initialbpp;
+		} else {
+			raw_data[i] = 0xFF - raw_data[i];
+		}
 	}
+	if (!write_unfiltered(png, raw_data))
+		return 0;
+	return 1;
+}
+
+//TODO: cleanup and add png_mirror (transpose only)
+int png_rotate(struct PNG *png)
+{
+	int raw_len;
+	uint8_t *raw_data = get_unfiltered(png, &raw_len);
+	int width = png->IHDR_chunk.width;
+	int height = png->IHDR_chunk.height;
+	uint8_t *transp = malloc(raw_len);
+	int bpp;
+	int alpha = png_calc_alpha(png);
+	if (!png_calc_bpp(png, &bpp))
+		return 0;
+
+	// reverse rows and transpose matrix
+	for (int i = 0; i < height; i++) {
+		memcpy(transp+i*width*bpp, raw_data+(height-1-i)*width*bpp,
+		       width*bpp);
+	}
+
+	for (int j = 0; j < height; j++) {
+		for (int i = 0; i < width; i++) {
+			int dst = (i*height+j)*bpp;
+			int src = (j*width+i)*bpp;
+			memcpy(raw_data+dst, transp+src, bpp);
+		}
+	}
+
+	png->IHDR_chunk.width = height;
+	png->IHDR_chunk.height = width;
+	free(transp);
 	if (!write_unfiltered(png, raw_data))
 		return 0;
 	return 1;
