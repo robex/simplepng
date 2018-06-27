@@ -38,18 +38,34 @@ int png_invert(struct PNG *png)
 	int raw_len;
 	uint8_t *raw_data;
 	int bpp;
-	int initialbpp;
 	int alpha = png_calc_alpha(png);
 	if (!png_calc_bpp(png, &bpp))
 		return 0;
-	initialbpp = bpp;
 
 	raw_data = get_unfiltered(png, &raw_len);
-	for (int i = 0; i < raw_len; i++) {
-		if (alpha != 0 && i % (bpp - alpha) == 0 && i != 0) {
-			bpp += initialbpp;
-		} else {
-			raw_data[i] = 0xFF - raw_data[i];
+	for (int i = 0; i < raw_len; i+=bpp) {
+		for (int j = 0; j < bpp-alpha; j++)
+			raw_data[i+j] = 0xFF - raw_data[i+j];
+	}
+	if (!write_unfiltered(png, raw_data))
+		return 0;
+	return 1;
+}
+
+/* Replace color */
+int png_replace(struct PNG *png, uint8_t *src_color, uint8_t *dst_color)
+{
+	int raw_len;
+	uint8_t *raw_data;
+	int bpp;
+	int alpha = png_calc_alpha(png);
+	if (!png_calc_bpp(png, &bpp))
+		return 0;
+
+	raw_data = get_unfiltered(png, &raw_len);
+	for (int i = 0; i < raw_len; i+=bpp) {
+		if (!memcmp(raw_data+i, src_color, bpp-alpha)) {
+			memcpy(raw_data+i, dst_color, bpp-alpha);
 		}
 	}
 	if (!write_unfiltered(png, raw_data))
@@ -96,13 +112,16 @@ int png_swap(struct PNG *png)
 {
 	int raw_len;
 	uint8_t *raw_data;
+	int bpp;
+	if (!png_calc_bpp(png, &bpp))
+		return 0;
 
 	raw_data = get_unfiltered(png, &raw_len);
-	uint8_t tmp;
-	for (int i = 0; i < raw_len-1; i+=2) {
-		tmp = raw_data[i];
-		raw_data[i] = raw_data[i+1];
-		raw_data[i+1] = tmp;
+	uint8_t tmp[bpp];
+	for (int i = 0; i < raw_len-bpp; i+=bpp) {
+		memcpy(tmp, raw_data+i, bpp);
+		memcpy(raw_data+i, raw_data+i+bpp, bpp);
+		memcpy(raw_data+i+bpp, tmp, bpp);
 	}
 	write_unfiltered(png, raw_data);
 	return 1;

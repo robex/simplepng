@@ -260,11 +260,11 @@ void test_remove_filter()
 	free(removed_filter);
 }
 
-void test_invert()
+void test_invert(char *filename)
 {
-	printf(">>> TEST: invert png\n");
+	printf(">>> TEST: invert png %s\n", filename);
 	struct PNG png;
-	if (!png_open(&png, "samples/rms16alpha.png")) {
+	if (!png_open(&png, filename)) {
 		printf("png_open: error opening png\n");
 		return;
 	}
@@ -277,7 +277,7 @@ void test_swap()
 {
 	printf(">>> TEST: swap png\n");
 	struct PNG png;
-	if (!png_open(&png, "samples/testfile_8bit_grey")) {
+	if (!png_open(&png, "samples/ruben.png")) {
 		printf("png_open: error opening png\n");
 		return;
 	}
@@ -296,6 +296,21 @@ void test_rotate(char *filename)
 	}
 	png_rotate(&png); 
 	png_dump(&png, "samples/rotate_test");
+	png_close(&png);
+}
+
+void test_replace(char *filename)
+{
+	printf(">>> TEST: replace png %s\n", filename);
+	struct PNG png;
+	uint8_t src[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+	uint8_t dst[6] = {0xae, 0x22, 0xbb, 0xff, 0x77, 0x00};
+	if (!png_open(&png, filename)) {
+		printf("png_open: error opening png\n");
+		return;
+	}
+	png_replace(&png, src, dst);
+	png_dump(&png, "samples/replace_test");
 	png_close(&png);
 }
 
@@ -323,7 +338,8 @@ int main()
 	test_copy("samples/testfile_8bit_grey", "samples/copy_test");
 	test_copy("samples/rms.png", "samples/copy_test");
 	test_remove_filter();
-	test_invert();
+	test_invert("samples/ruben_grey.png");
 	test_rotate("samples/rms16alpha.png");
+	test_replace("samples/java.png");
 	test_swap();
 }

@@ -85,6 +85,7 @@ int remove_filter(struct PNG *png, uint8_t *filtered_data, int *rawlen,
 int png_invert(struct PNG *png);
 int png_swap(struct PNG *png);
 int png_rotate(struct PNG *png);
+int png_replace(struct PNG *png, uint8_t *src_color, uint8_t *dst_color);
 
 /* Table of CRCs of all 8-bit messages. */
 extern uint32_t crc_table[256];
