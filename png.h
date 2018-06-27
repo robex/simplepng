@@ -82,9 +82,12 @@ int remove_filter(struct PNG *png, uint8_t *filtered_data, int *rawlen,
 		  uint8_t **raw_data);
 
 
+/* Invert color (doesn't invert alpha) */
 int png_invert(struct PNG *png);
+/* Swap each pixel with its right neighbour */
 int png_swap(struct PNG *png);
 int png_rotate(struct PNG *png);
+/* Replace src_color (must be the right size) with dst_color */
 int png_replace(struct PNG *png, uint8_t *src_color, uint8_t *dst_color);
 
 /* Table of CRCs of all 8-bit messages. */

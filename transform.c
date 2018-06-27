@@ -32,7 +32,7 @@ int write_unfiltered(struct PNG *png, uint8_t *raw_data)
 }
 
 
-/* Invert color */
+/* Invert color (doesn't invert alpha) */
 int png_invert(struct PNG *png)
 {
 	int raw_len;
@@ -52,7 +52,7 @@ int png_invert(struct PNG *png)
 	return 1;
 }
 
-/* Replace color */
+/* Replace src_color (must be the right size) with dst_color */
 int png_replace(struct PNG *png, uint8_t *src_color, uint8_t *dst_color)
 {
 	int raw_len;
