@@ -65,9 +65,15 @@ struct PNG png_init(int width, int height, uint8_t bit_depth,
 /* Write png data stream into struct png, setting up all necessary
  * fields */
 void png_write(struct PNG *png, uint8_t *data, int datalen);
+/* Return raw (uncompressed but filtered) data from png,
+ * returns length of raw stream in rawlen (must be allocated) */
 uint8_t *png_get_raw_data(struct PNG *png, uint64_t *rawlen);
+/* Print metadata and raw (compressed and uncompressed) streams. */
 void print_png_raw(struct PNG *png);
+/* Write png to disk, to file filename. Returns 1 if succesful,
+ * 0 otherwise. */
 int png_dump(struct PNG *png, char *filename);
+/* Clean png structures and free memory */
 void png_close(struct PNG *png);
 
 /* Get the bytes per pixel (including alpha) of *png */
@@ -86,6 +92,7 @@ int remove_filter(struct PNG *png, uint8_t *filtered_data, int *rawlen,
 int png_invert(struct PNG *png);
 /* Swap each pixel with its right neighbour */
 int png_swap(struct PNG *png);
+/* Rotate png 90 degrees clockwise */
 int png_rotate(struct PNG *png);
 /* Replace src_color (must be the right size) with dst_color */
 int png_replace(struct PNG *png, uint8_t *src_color, uint8_t *dst_color);

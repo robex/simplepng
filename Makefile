@@ -14,11 +14,11 @@ lib:
 	gcc -c -o crc.o crc.c
 	gcc -c -o filter.o filter.c
 	gcc -c -o transform.o transform.c
-	ar cr libsimplepng.a png.o filter.o crc.o
+	ar cr libsimplepng.a png.o filter.o crc.o transform.o
 
 lib_so: 
 	gcc -c -fpic -o png.o png.c
 	gcc -c -fpic -o crc.o crc.c
 	gcc -c -fpic -o filter.o filter.c
 	gcc -c -fpic -o transform.o transform.c
-	gcc -shared -o libsimplepng.so png.o filter.o crc.o
+	gcc -shared -o libsimplepng.so png.o filter.o crc.o transform.o

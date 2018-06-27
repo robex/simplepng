@@ -74,6 +74,7 @@ int png_replace(struct PNG *png, uint8_t *src_color, uint8_t *dst_color)
 }
 
 //TODO: cleanup and add png_mirror (transpose only)
+/* Rotate png 90 degrees clockwise */
 int png_rotate(struct PNG *png)
 {
 	int raw_len;
