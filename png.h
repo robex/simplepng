@@ -96,6 +96,8 @@ int png_swap(struct PNG *png);
 int png_rotate(struct PNG *png);
 /* Replace src_color (must be the right size) with dst_color */
 int png_replace(struct PNG *png, uint8_t *src_color, uint8_t *dst_color);
+int png_flip_horizontal(struct PNG *png);
+int png_flip_vertical(struct PNG *png);
 
 /* Table of CRCs of all 8-bit messages. */
 extern uint32_t crc_table[256];

@@ -73,6 +73,60 @@ int png_replace(struct PNG *png, uint8_t *src_color, uint8_t *dst_color)
 	return 1;
 }
 
+int png_flip_horizontal(struct PNG *png)
+{
+	int raw_len;
+	uint8_t *raw_data = get_unfiltered(png, &raw_len);
+	int width = png->IHDR_chunk.width;
+	int height = png->IHDR_chunk.height;
+	int bpp;
+	if (!png_calc_bpp(png, &bpp))
+		return 0;
+	uint8_t tmp[bpp];
+
+	// swap columns (by swapping each row individually)
+	for (int j = 0; j < height; j++) {
+		for (int i = 0; i < width/2; i++) {
+			// left position, increases until the midpoint
+			int beg = i * bpp + width * bpp * j;
+			// right position, decreases
+			int end = (width - 1 - i) * bpp + width * bpp * j;
+			
+			memcpy(tmp, raw_data + beg, bpp);
+			memcpy(raw_data + beg, raw_data + end, bpp);
+			memcpy(raw_data + end, tmp, bpp);
+		}
+	}
+
+	if (!write_unfiltered(png, raw_data))
+		return 0;
+	return 1;
+}
+
+int png_flip_vertical(struct PNG *png)
+{
+	int raw_len;
+	uint8_t *raw_data = get_unfiltered(png, &raw_len);
+	int width = png->IHDR_chunk.width;
+	int height = png->IHDR_chunk.height;
+	int bpp;
+	if (!png_calc_bpp(png, &bpp))
+		return 0;
+	uint8_t tmp[width*bpp];
+
+	for (int i = 0; i < height/2; i++) {
+		int beg = i * width * bpp;
+		int end = (height - 1 - i) * width * bpp;
+		memcpy(tmp, raw_data + beg, width * bpp);
+		memcpy(raw_data + beg, raw_data + end, width * bpp);
+		memcpy(raw_data + end, tmp, width * bpp);
+	}
+
+	if (!write_unfiltered(png, raw_data))
+		return 0;
+	return 1;
+}
+
 //TODO: cleanup and add png_mirror (transpose only)
 /* Rotate png 90 degrees clockwise */
 int png_rotate(struct PNG *png)

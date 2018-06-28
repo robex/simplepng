@@ -314,6 +314,32 @@ void test_replace(char *filename)
 	png_close(&png);
 }
 
+void test_flip_horiz(char *filename)
+{
+	printf(">>> TEST: flip horizontal png %s\n", filename);
+	struct PNG png;
+	if (!png_open(&png, filename)) {
+		printf("png_open: error opening png\n");
+		return;
+	}
+	png_flip_horizontal(&png);
+	png_dump(&png, "samples/flip_hor_test");
+	png_close(&png);
+}
+
+void test_flip_vert(char *filename)
+{
+	printf(">>> TEST: flip vertical png %s\n", filename);
+	struct PNG png;
+	if (!png_open(&png, filename)) {
+		printf("png_open: error opening png\n");
+		return;
+	}
+	png_flip_vertical(&png);
+	png_dump(&png, "samples/flip_ver_test");
+	png_close(&png);
+}
+
 int main()
 {
 	test_8_bit_grey();
@@ -341,5 +367,7 @@ int main()
 	test_invert("samples/ruben_grey.png");
 	test_rotate("samples/rms16alpha.png");
 	test_replace("samples/java.png");
+	test_flip_horiz("samples/rms16alpha.png");
+	test_flip_vert("samples/rms16alpha.png");
 	test_swap();
 }
