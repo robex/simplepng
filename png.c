@@ -6,6 +6,8 @@
 #include <byteswap.h>
 #include "png.h"
 
+/*#define TEST_PRINT_DATA*/
+
 uint8_t head[HEADER_SIZE] = {
 	0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a
 };
@@ -71,34 +73,49 @@ int copy_header(struct PNG *png, uint8_t *data, int *pos)
 	return 1;
 }
 
-int copy_idat(struct PNG *png, uint8_t *data, int fsize)
+int copy_idat(struct PNG *png, uint8_t *data, int fsize, int *pos)
 {
-	uint8_t *idat_type = NULL;
+	uint8_t idat_type[4];
 	png->IDAT = NULL;
 	png->nidat = 0;
 	int i = 0;
-	// while there are no more idat chunks
-	while ((idat_type = memmem(data, fsize, idat, 4)) != NULL) {
-		png->IDAT = realloc(png->IDAT, sizeof(struct chunk) * (i + 1));
-		memcpy(&png->IDAT[i].length, idat_type - 4, 4);
-		int length = __bswap_32(png->IDAT[i].length);
-		// store swapped value
-		png->IDAT[i].length = length;
-		memcpy(&png->IDAT[i].type, idat_type, 4);
-		png->IDAT[i].data = malloc(length);
-		memcpy(png->IDAT[i].data, idat_type + 4, length);
-		uint32_t crc_calc = crc(idat_type, length + 4);
+	// data here is at length of first chunk after IHDR
+	data += *pos;
 
-		memcpy(&png->IDAT[i].crc, idat_type + 4 + length, 4);
+	while (1) {
+		// copy type of next chunk
+		uint32_t length;
+		memcpy(&length, data, 4);
+		length = __bswap_32(length);
+		memcpy(idat_type, data + 4, 4);
+
+		if (memcmp(idat_type, idat, 4)) {
+			if (memcmp(idat_type, iend + 4, 4)) {
+				data += length + 12;
+				continue;
+			} else {
+				break;
+			}
+		}
+		png->IDAT = realloc(png->IDAT, sizeof(struct chunk) * (i + 1));
+		png->IDAT[i].length = length;
+		memcpy(&png->IDAT[i].type, data + 4, 4);
+		png->IDAT[i].data = malloc(length);
+		memcpy(png->IDAT[i].data, data + 8, length);
+		uint32_t crc_calc = crc(data + 4, length + 4);
+
+		memcpy(&png->IDAT[i].crc, data + 8 + length, 4);
 		png->IDAT[i].crc = __bswap_32(png->IDAT[i].crc);
 		if (memcmp(&png->IDAT[i].crc, &crc_calc, 4)) {
+			// incorrect crc
 			return 0;
 		}
 		i++;
 		png->nidat++;
-		data = idat_type + length;
-		fsize -= length;
+		// move data ptr to length of next chunk
+		data += length + 12;
 	}
+
 	// didn't go inside the loop
 	return i != 0;
 }
@@ -133,7 +150,8 @@ int png_open(struct PNG *png, char *filename)
 
 	// TODO: valgrind complains about uninitialized
 	uint8_t data[fsize];
-	fread(data, fsize, 1, f);
+	if (!fread(data, fsize, 1, f))
+		return 0;
 	fclose(f);
 
 	// header + ihdr + iend
@@ -146,7 +164,7 @@ int png_open(struct PNG *png, char *filename)
 	if (!copy_ihdr(png, data, &pos)) {
 		return 0;
 	}
-	if (!copy_idat(png, data, fsize)) {
+	if (!copy_idat(png, data, fsize, &pos)) {
 		return 0;
 	}
 	if (!copy_iend(png, data, fsize)) {
@@ -305,14 +323,15 @@ void print_png_raw(struct PNG *png)
 		int len = png->IDAT[idats].length;
 		int bpp;
 		png_calc_bpp(png, &bpp);
-		uint64_t rawlen = (png->IHDR_chunk.width * bpp + 1)
-				  * png->IHDR_chunk.height;
-		uint8_t data_raw[rawlen];
 		printf("#### IDAT %d ####\n", idats);
 		printf("length: %08x\n", len);
 		printf("type: ");
 		for (int i = 0; i < 4; i++)
 			printf("%c", png->IDAT[idats].type[i]);
+#ifdef TEST_PRINT_DATA
+		uint64_t rawlen = (png->IHDR_chunk.width * bpp + 1)
+				  * png->IHDR_chunk.height;
+		uint8_t data_raw[rawlen];
 		printf("\ndata (compressed):");
 		for (int i = 0; i < len; i++) {
 			if (i % 16 == 0) printf("\n");
@@ -326,6 +345,7 @@ void print_png_raw(struct PNG *png)
 			if (i % 16 == 0) printf("\n");
 			printf("%02x ", data_raw[i]);
 		}
+#endif
 		printf("\ncrc: %08x\n", png->IDAT[idats].crc);
 	}
 
