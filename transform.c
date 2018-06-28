@@ -31,7 +31,6 @@ int write_unfiltered(struct PNG *png, uint8_t *raw_data)
 	return 1;
 }
 
-
 /* Invert color (doesn't invert alpha) */
 int png_invert(struct PNG *png)
 {
@@ -127,7 +126,6 @@ int png_flip_vertical(struct PNG *png)
 	return 1;
 }
 
-//TODO: cleanup and add png_mirror (transpose only)
 /* Rotate png 90 degrees clockwise */
 int png_rotate(struct PNG *png)
 {
