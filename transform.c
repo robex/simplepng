@@ -179,3 +179,65 @@ int png_swap(struct PNG *png)
 	write_unfiltered(png, raw_data);
 	return 1;
 }
+
+/* Condense png by condratio: downscale image by taking the average of
+ * all pixels in the square formed by condratio ^ 2 */
+
+//TODO: make pixelation (set average to all pixels, dont change image size
+int png_condense(struct PNG *png)
+{
+	int raw_len;
+	uint8_t *raw_data = get_unfiltered(png, &raw_len);
+	int width = png->IHDR_chunk.width;
+	int height = png->IHDR_chunk.height;
+	int bpp;
+	int alpha = png_calc_alpha(png);
+
+	int condratio = 8;
+
+	int newwidth = width / condratio;
+	int newheight = height / condratio;
+	int newlength = newwidth * newheight * bpp;
+
+	uint8_t *cond_data = malloc(newlength);
+
+	if (!png_calc_bpp(png, &bpp))
+		return 0;
+
+	uint32_t tmpbyte;
+	int subindex, condindex;
+
+	tmpbyte = 0;
+	// total height, increased in condratio steps
+	for (int j = 0; j < height; j+=condratio) {
+		// total width, increased in condratio steps
+		for (int i = 0; i < width*bpp; i+=condratio*bpp) {
+			for (int m = 0; m < bpp; m++) {
+				// submatrix height
+				for (int k = 0; k < condratio; k++) {
+					// submatrix width
+					for (int l = 0; l < condratio; l++) {
+						subindex = i + j*width*bpp + l*bpp
+							   + k*width*bpp + m;
+						tmpbyte += raw_data[subindex];
+						/*printf("%d ", subindex);*/
+					}
+				}
+				tmpbyte /= condratio * condratio;
+				/*printf("\ntmpbyte: %d\n", tmpbyte);*/
+				condindex = (i/condratio) +
+				            (j/condratio)*newwidth*bpp + m;
+				/*printf("condindex:%d\n", condindex);*/
+				cond_data[condindex] = tmpbyte;
+				tmpbyte = 0;
+			}
+		}
+	}
+
+	png->IHDR_chunk.width = newwidth;
+	png->IHDR_chunk.height = newheight;
+
+	free(raw_data);
+	write_unfiltered(png, cond_data);
+	return 1;
+}

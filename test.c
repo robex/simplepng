@@ -340,6 +340,19 @@ void test_flip_vert(char *filename)
 	png_close(&png);
 }
 
+void test_condense(char *filename)
+{
+	printf(">>> TEST: condense png %s\n", filename);
+	struct PNG png;
+	if (!png_open(&png, filename)) {
+		printf("png_open: error opening png\n");
+		return;
+	}
+	png_condense(&png);
+	png_dump(&png, "samples/condense_test");
+	png_close(&png);
+}
+
 int main()
 {
 	test_8_bit_grey();
@@ -369,5 +382,6 @@ int main()
 	test_replace("samples/java.png");
 	test_flip_horiz("samples/rms16alpha.png");
 	test_flip_vert("samples/rms16alpha.png");
+	test_condense("samples/gtasabin.png");
 	test_swap();
 }
