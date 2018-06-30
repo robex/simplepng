@@ -3,6 +3,9 @@
 #include <stdlib.h>
 #include "png.h"
 
+#define RED(x) "\033[1;31m" x "\033[0;m"
+#define GREEN(x) "\033[1;32m" x "\033[0;m"
+
 /* 8-bit greyscale (no alpha) */
 void test_8_bit_grey()
 {
@@ -21,7 +24,7 @@ void test_8_bit_grey()
 	apply_filter(&png, raw_data, &size, &fil_data);
 
 	if (!memcmp(ref_data, fil_data, 8)) {
-		printf("8bit grey data -> OK\n");
+		printf("8bit grey data -> " GREEN("OK") "\n");
 	} else {
 		printf("8bit grey data -> ERROR\n");
 	}
@@ -348,7 +351,10 @@ void test_condense(char *filename)
 		printf("png_open: error opening png\n");
 		return;
 	}
-	png_condense(&png);
+	if (!png_condense(&png)) {
+		printf("png_condense -> ERROR\n");
+	}
+
 	png_dump(&png, "samples/condense_test");
 	png_close(&png);
 }
@@ -373,15 +379,22 @@ int main()
 	/*test_open("samples/pngtest.png");*/
 	/*printf("\n");*/
 	/*test_open("samples/ruben_grey.png");*/
+	/*printf("\n");*/
+	/*test_open("samples/condense_test");*/
+	/*printf("\n");*/
+	/*test_open("samples/pixel.png");*/
 
 	test_copy("samples/testfile_8bit_grey", "samples/copy_test");
 	test_copy("samples/rms.png", "samples/copy_test");
+	test_copy("samples/pixel.png", "samples/copy_test");
 	test_remove_filter();
 	test_invert("samples/ruben_grey.png");
 	test_rotate("samples/rms16alpha.png");
 	test_replace("samples/java.png");
 	test_flip_horiz("samples/rms16alpha.png");
 	test_flip_vert("samples/rms16alpha.png");
-	test_condense("samples/gtasabin.png");
+	test_condense("samples/condense.png");
+	/*test_condense("samples/gtasabin.png");*/
+	/*test_condense("samples/ruben.png");*/
 	test_swap();
 }

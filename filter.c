@@ -56,7 +56,7 @@ int apply_filter(struct PNG *png, uint8_t *data, int *filteredlen,
 
 	int totalwidth = width * bpp + 1;
 
-	// 1 byte at the beginning, 1 byte per scanline
+	// 1 extra byte per scanline
 	*filteredlen = totalwidth * height;
 	*filtered_data = malloc(*filteredlen);
 

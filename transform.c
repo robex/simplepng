@@ -182,8 +182,7 @@ int png_swap(struct PNG *png)
 
 /* Condense png by condratio: downscale image by taking the average of
  * all pixels in the square formed by condratio ^ 2 */
-
-//TODO: make pixelation (set average to all pixels, dont change image size
+//TODO: make pixelation (set average to all pixels, dont change image size)
 int png_condense(struct PNG *png)
 {
 	int raw_len;
@@ -192,20 +191,25 @@ int png_condense(struct PNG *png)
 	int height = png->IHDR_chunk.height;
 	int bpp;
 
-	int condratio = 8;
+	int condratio = 4;
 	int newwidth = width / condratio;
 	int newheight = height / condratio;
 	int newlength = newwidth * newheight * bpp;
+
+	if (condratio > width || condratio > height)
+		return 0;
 
 	uint8_t *cond_data = malloc(newlength);
 
 	if (!png_calc_bpp(png, &bpp))
 		return 0;
 
-	uint32_t tmpbyte;
-	int subindex, condindex;
+	uint32_t tmpbyte = 0;
+	int subindex = 0;
+	int condindex = 0;
 
-	tmpbyte = 0;
+	//TODO: not enough image data when result is 1px
+	
 	// total height, increased in condratio steps
 	for (int j = 0; j < height; j+=condratio) {
 		// total width, increased in condratio steps
@@ -218,7 +222,8 @@ int png_condense(struct PNG *png)
 					for (int l = 0; l < condratio; l++) {
 						subindex = i + j*width*bpp + l*bpp
 							   + k*width*bpp + m;
-						tmpbyte += raw_data[subindex];
+						if (subindex < raw_len)
+							tmpbyte += raw_data[subindex];
 						/*printf("%d ", subindex);*/
 					}
 				}
@@ -227,7 +232,7 @@ int png_condense(struct PNG *png)
 				condindex = (i/condratio) +
 				            (j/condratio)*newwidth*bpp + m;
 				/*printf("condindex:%d\n", condindex);*/
-				cond_data[condindex] = tmpbyte;
+				cond_data[condindex] = (uint8_t)tmpbyte;
 				tmpbyte = 0;
 			}
 		}
