@@ -212,6 +212,7 @@ int png_condense(struct PNG *png)
 	for (int j = 0; j < height; j+=condratio) {
 		// total width, increased in condratio steps
 		for (int i = 0; i < width*bpp; i+=condratio*bpp) {
+			// bytes per pixel inside each submatrix
 			for (int m = 0; m < bpp; m++) {
 				// submatrix height
 				for (int k = 0; k < condratio; k++) {
