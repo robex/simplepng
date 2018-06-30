@@ -253,3 +253,66 @@ int png_condense(struct PNG *png, int condratio)
 	write_unfiltered(png, cond_data);
 	return 1;
 }
+
+int png_pixelate(struct PNG *png, int condratio)
+{
+	int raw_len;
+	uint8_t *raw_data = get_unfiltered(png, &raw_len);
+	int width = png->IHDR_chunk.width;
+	int height = png->IHDR_chunk.height;
+	int bpp;
+
+	if (!png_calc_bpp(png, &bpp))
+		return 0;
+
+	if (condratio <= 0 || condratio > width || condratio > height)
+		return 0;
+
+	uint32_t tmpbyte = 0;
+	int subindex = 0;
+	// account for edge pixels that dont make up an entire square
+	int npixels = 0;
+
+	//TODO: not enough image data when result is 1px
+	
+	// total height, increased in condratio steps
+	for (int j = 0; j < height; j+=condratio) {
+		// total width, increased in condratio steps
+		for (int i = 0; i < width*bpp; i+=condratio*bpp) {
+			// bytes per pixel inside each submatrix
+			for (int m = 0; m < bpp; m++) {
+				// submatrix height
+				for (int k = 0; k < condratio; k++) {
+					// submatrix width
+					for (int l = 0; l < condratio; l++) {
+						subindex = i + j*width*bpp + l*bpp
+							   + k*width*bpp + m;
+						// check we're within boundaries (l stays in same column)
+						if (subindex < raw_len && i+l*bpp < width*bpp) {
+							tmpbyte += raw_data[subindex];
+							npixels++;
+						}
+					}
+				}
+				tmpbyte /= npixels;
+				npixels = 0;
+				/*printf("\ntmpbyte: %d\n", tmpbyte);*/
+				for (int k = 0; k < condratio; k++) {
+					// submatrix width
+					for (int l = 0; l < condratio; l++) {
+						subindex = i + j*width*bpp + l*bpp
+							   + k*width*bpp + m;
+						// check we're within boundaries (l stays in same column)
+						if (subindex < raw_len && i+l*bpp < width*bpp) {
+							raw_data[subindex] = tmpbyte;
+						}
+					}
+				}
+				tmpbyte = 0;
+			}
+		}
+	}
+
+	write_unfiltered(png, raw_data);
+	return 1;
+}

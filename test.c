@@ -3,8 +3,19 @@
 #include <stdlib.h>
 #include "png.h"
 
-#define RED(x) "\033[1;31m" x "\033[0;m"
-#define GREEN(x) "\033[1;32m" x "\033[0;m"
+#define RED(x) "\033[1;41m" x "\033[0;m"
+#define GREEN(x) "\033[1;42m" x "\033[0;m"
+#define YELLOW(x) "\033[1;33m" x "\033[0;m"
+
+void print_aligned(char *string, char *result, int column)
+{
+	int len = strlen(string) - 12;
+	printf("%s ", string);
+	for (int i = len; i < column; i++)
+		printf(".");
+	printf(" %s", result);
+	printf("\n");
+}
 
 /* 8-bit greyscale (no alpha) */
 void test_8_bit_grey()
@@ -24,9 +35,9 @@ void test_8_bit_grey()
 	apply_filter(&png, raw_data, &size, &fil_data);
 
 	if (!memcmp(ref_data, fil_data, 8)) {
-		printf("8bit grey data -> " GREEN("OK") "\n");
+		print_aligned(">>> "YELLOW("TEST")": 8bit grey data", GREEN("OK"), 70);
 	} else {
-		printf("8bit grey data -> ERROR\n");
+		print_aligned(">>> "YELLOW("TEST")": 8bit grey data", RED("ERROR"), 70);
 	}
 
 	png_write(&png, fil_data, size);
@@ -68,9 +79,9 @@ void test_8_bit_grey_alpha()
 
 
 	if (!memcmp(ref_data, fil_data, 14)) {
-		printf("8bit grey alpha data -> OK\n");
+		print_aligned(">>> "YELLOW("TEST")": 8bit grey alpha data", GREEN("OK"), 70);
 	} else {
-		printf("8bit grey alpha data -> ERROR\n");
+		print_aligned(">>> "YELLOW("TEST")": 8bit grey alpha data", RED("ERROR"), 70);
 	}
 
 	png_write(&png, fil_data, size);
@@ -101,9 +112,9 @@ void test_16_bit_grey()
 	apply_filter(&png, raw_data, &size, &fil_data);
 
 	if (!memcmp(ref_data, fil_data, 14)) {
-		printf("16bit grey data -> OK\n");
+		print_aligned(">>> "YELLOW("TEST")": 16bit grey data", GREEN("OK"), 70);
 	} else {
-		printf("16bit grey data -> ERROR\n");
+		print_aligned(">>> "YELLOW("TEST")": 16bit grey data", RED("ERROR"), 70);
 	}
 
 	png_write(&png, fil_data, size);
@@ -145,9 +156,9 @@ void test_8_bit_rgb()
 	apply_filter(&png, raw_data, &size, &fil_data);
 
 	if (!memcmp(ref_data, fil_data, 20)) {
-		printf("8bit rgb data -> OK\n");
+		print_aligned(">>> "YELLOW("TEST")": 8bit rgb data", GREEN("OK"), 70);
 	} else {
-		printf("8bit rgb data -> ERROR\n");
+		print_aligned(">>> "YELLOW("TEST")": 8bit rgb data", RED("ERROR"), 70);
 	}
 
 	png_write(&png, fil_data, 20);
@@ -190,9 +201,9 @@ void test_16_bit_rgb()
 	apply_filter(&png, raw_data, &size, &fil_data);
 
 	if (!memcmp(ref_data, fil_data, 38)) {
-		printf("16bit rgb data -> OK\n");
+		print_aligned(">>> "YELLOW("TEST")": 16bit rgb data", GREEN("OK"), 70);
 	} else {
-		printf("16bit rgb data -> ERROR\n");
+		print_aligned(">>> "YELLOW("TEST")": 16bit rgb data", RED("ERROR"), 70);
 	}
 
 	png_write(&png, fil_data, 38);
@@ -206,7 +217,7 @@ void test_16_bit_rgb()
 void test_open(char *filename)
 {
 	struct PNG png;
-	printf(">>> TEST: parse \"%s\"\n", filename);
+	printf(">>> "YELLOW("TEST")": parse \"%s\"\n", filename);
 	if (!png_open(&png, filename)) {
 		printf("png_open: error opening png\n");
 	} else {
@@ -218,14 +229,18 @@ void test_open(char *filename)
 void test_copy(char *in, char *out)
 {
 	struct PNG png;
-	printf(">>> TEST: copy \"%s\" to \"%s\"\n", in, out);
+	char string[80];
+	sprintf(string, ">>> "YELLOW("TEST")": copy \"%s\" to \"%s\"", in, out);
 	if (!png_open(&png, in)) {
 		printf("png_open: error opening png\n");
-	} else {
-		png_dump(&png, out);
-		png_close(&png);
+		return;
 	}
+	if (!png_dump(&png, out))
+		print_aligned(string, RED("ERROR"), 70);
+	else
+		print_aligned(string, GREEN("OK"), 70);
 
+	png_close(&png);
 }
 
 void test_remove_filter()
@@ -246,18 +261,18 @@ void test_remove_filter()
 	int sizerem;
 	uint8_t *removed_filter;
 	if (!apply_filter(&png, raw_data, &size, &fil_data)) {
-		printf("Removing filter -> ERROR\n");
+		print_aligned(">>> "YELLOW("TEST")": removing filter", RED("ERROR"), 70);
 		return;
 	}
 	if (!remove_filter(&png, fil_data, &sizerem, &removed_filter)) {
-		printf("Removing filter -> ERROR\n");
+		print_aligned(">>> "YELLOW("TEST")": removing filter", RED("ERROR"), 70);
 		return;
 	}
 
 	if (!memcmp(raw_data, removed_filter, 12)) {
-		printf("Removing filter -> OK\n");
+		print_aligned(">>> "YELLOW("TEST")": removing filter", GREEN("OK"), 70);
 	} else {
-		printf("Removing filter -> ERROR\n");
+		print_aligned(">>> "YELLOW("TEST")": removing filter", RED("ERROR"), 70);
 	}
 	free(fil_data);
 	free(removed_filter);
@@ -265,46 +280,59 @@ void test_remove_filter()
 
 void test_invert(char *filename)
 {
-	printf(">>> TEST: invert png %s\n", filename);
+	char string[80];
+	sprintf(string, ">>> "YELLOW("TEST")": invert png %s", filename);
 	struct PNG png;
 	if (!png_open(&png, filename)) {
 		printf("png_open: error opening png\n");
 		return;
 	}
-	png_invert(&png); 
+	if (!png_invert(&png))
+		print_aligned(string, RED("ERROR"), 70);
+	else
+		print_aligned(string, GREEN("OK"), 70);
 	png_dump(&png, "samples/invert_test");
 	png_close(&png);
 }
 
-void test_swap()
+void test_swap(char *filename)
 {
-	printf(">>> TEST: swap png\n");
+	char string[80];
+	sprintf(string, ">>> "YELLOW("TEST")": swap png %s", filename);
 	struct PNG png;
 	if (!png_open(&png, "samples/ruben.png")) {
 		printf("png_open: error opening png\n");
 		return;
 	}
-	png_swap(&png); 
+	if (!png_swap(&png))
+		print_aligned(string, RED("ERROR"), 70);
+	else
+		print_aligned(string, GREEN("OK"), 70);
 	png_dump(&png, "samples/swap_test");
 	png_close(&png);
 }
 
 void test_rotate(char *filename)
 {
-	printf(">>> TEST: rotate png %s\n", filename);
+	char string[80];
+	sprintf(string, ">>> "YELLOW("TEST")": rotate png %s", filename);
 	struct PNG png;
 	if (!png_open(&png, filename)) {
 		printf("png_open: error opening png\n");
 		return;
 	}
-	png_rotate(&png); 
+	if (!png_rotate(&png))
+		print_aligned(string, RED("ERROR"), 70);
+	else
+		print_aligned(string, GREEN("OK"), 70);
 	png_dump(&png, "samples/rotate_test");
 	png_close(&png);
 }
 
 void test_replace(char *filename)
 {
-	printf(">>> TEST: replace png %s\n", filename);
+	char string[80];
+	sprintf(string, ">>> "YELLOW("TEST")": replace png %s", filename);
 	struct PNG png;
 	uint8_t src[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 	uint8_t dst[6] = {0xae, 0x22, 0xbb, 0xff, 0x77, 0x00};
@@ -312,51 +340,83 @@ void test_replace(char *filename)
 		printf("png_open: error opening png\n");
 		return;
 	}
-	png_replace(&png, src, dst);
+	if (!png_replace(&png, src, dst))
+		print_aligned(string, RED("ERROR"), 70);
+	else
+		print_aligned(string, GREEN("OK"), 70);
 	png_dump(&png, "samples/replace_test");
 	png_close(&png);
 }
 
 void test_flip_horiz(char *filename)
 {
-	printf(">>> TEST: flip horizontal png %s\n", filename);
+	char string[80];
+	sprintf(string, ">>> "YELLOW("TEST")": flip horizontal png %s", filename);
 	struct PNG png;
 	if (!png_open(&png, filename)) {
 		printf("png_open: error opening png\n");
 		return;
 	}
-	png_flip_horizontal(&png);
+	if (!png_flip_horizontal(&png))
+		print_aligned(string, RED("ERROR"), 70);
+	else
+		print_aligned(string, GREEN("OK"), 70);
 	png_dump(&png, "samples/flip_hor_test");
 	png_close(&png);
 }
 
 void test_flip_vert(char *filename)
 {
-	printf(">>> TEST: flip vertical png %s\n", filename);
+	char string[80];
+	sprintf(string, ">>> "YELLOW("TEST")": flip vertical png %s", filename);
 	struct PNG png;
 	if (!png_open(&png, filename)) {
 		printf("png_open: error opening png\n");
 		return;
 	}
-	png_flip_vertical(&png);
+	if (!png_flip_vertical(&png))
+		print_aligned(string, RED("ERROR"), 70);
+	else
+		print_aligned(string, GREEN("OK"), 70);
 	png_dump(&png, "samples/flip_ver_test");
 	png_close(&png);
 }
 
 void test_condense(char *filename, int condratio)
 {
-	printf(">>> TEST: condense png %s with ratio %d\n", filename,
+	char string[80];
+	sprintf(string, ">>> "YELLOW("TEST")": condense png %s with ratio %d", filename,
 	       condratio);
 	struct PNG png;
 	if (!png_open(&png, filename)) {
 		printf("png_open: error opening png\n");
 		return;
 	}
-	if (!png_condense(&png, condratio)) {
-		printf("png_condense -> ERROR\n");
-	}
+	if (!png_condense(&png, condratio))
+		print_aligned(string, RED("ERROR"), 70);
+	else
+		print_aligned(string, GREEN("OK"), 70);
 
 	png_dump(&png, "samples/condense_test");
+	png_close(&png);
+}
+
+void test_pixelate(char *filename, int condratio)
+{
+	char string[80];
+	sprintf(string, ">>> "YELLOW("TEST")": pixelate png %s with ratio %d", filename,
+	       condratio);
+	struct PNG png;
+	if (!png_open(&png, filename)) {
+		printf("png_open: error opening png\n");
+		return;
+	}
+	if (!png_pixelate(&png, condratio))
+		print_aligned(string, RED("ERROR"), 70);
+	else
+		print_aligned(string, GREEN("OK"), 70);
+
+	png_dump(&png, "samples/pixelate_test");
 	png_close(&png);
 }
 
@@ -397,8 +457,9 @@ int main()
 	/*test_condense("samples/condense.png", 2);*/
 	/*test_condense("samples/condense2.png", 3);*/
 	/*test_condense("samples/condense3.png", 2);*/
-	test_condense("samples/condense4.png", 9);
+	/*test_condense("samples/condense4.png", 9);*/
 	/*test_condense("samples/gtasabin.png", 8);*/
-	/*test_condense("samples/ruben.png", 8);*/
-	test_swap();
+	test_condense("samples/ruben.png", 8);
+	test_pixelate("samples/ruben.png", 8);
+	test_swap("samples/ruben.png");
 }
