@@ -343,15 +343,16 @@ void test_flip_vert(char *filename)
 	png_close(&png);
 }
 
-void test_condense(char *filename)
+void test_condense(char *filename, int condratio)
 {
-	printf(">>> TEST: condense png %s\n", filename);
+	printf(">>> TEST: condense png %s with ratio %d\n", filename,
+	       condratio);
 	struct PNG png;
 	if (!png_open(&png, filename)) {
 		printf("png_open: error opening png\n");
 		return;
 	}
-	if (!png_condense(&png)) {
+	if (!png_condense(&png, condratio)) {
 		printf("png_condense -> ERROR\n");
 	}
 
@@ -393,8 +394,11 @@ int main()
 	test_replace("samples/java.png");
 	test_flip_horiz("samples/rms16alpha.png");
 	test_flip_vert("samples/rms16alpha.png");
-	test_condense("samples/condense.png");
-	/*test_condense("samples/gtasabin.png");*/
-	/*test_condense("samples/ruben.png");*/
+	/*test_condense("samples/condense.png", 2);*/
+	/*test_condense("samples/condense2.png", 3);*/
+	/*test_condense("samples/condense3.png", 2);*/
+	test_condense("samples/condense4.png", 9);
+	/*test_condense("samples/gtasabin.png", 8);*/
+	/*test_condense("samples/ruben.png", 8);*/
 	test_swap();
 }

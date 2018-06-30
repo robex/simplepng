@@ -11,7 +11,6 @@ uint8_t *get_unfiltered(struct PNG *png, int *raw_len)
 	uint8_t *fil_data = png_get_raw_data(png, &fil_len);
 
 	if (!remove_filter(png, fil_data, raw_len, &raw_data)) {
-		printf("y");
 		free(fil_data);
 	}
 	free(fil_data);
@@ -180,10 +179,15 @@ int png_swap(struct PNG *png)
 	return 1;
 }
 
+
+int int_ceil_div(int dividend, int divisor) {
+	return (dividend + divisor - 1)/divisor;
+}
+
 /* Condense png by condratio: downscale image by taking the average of
  * all pixels in the square formed by condratio ^ 2 */
 //TODO: make pixelation (set average to all pixels, dont change image size)
-int png_condense(struct PNG *png)
+int png_condense(struct PNG *png, int condratio)
 {
 	int raw_len;
 	uint8_t *raw_data = get_unfiltered(png, &raw_len);
@@ -191,22 +195,22 @@ int png_condense(struct PNG *png)
 	int height = png->IHDR_chunk.height;
 	int bpp;
 
-	int condratio = 4;
-	int newwidth = width / condratio;
-	int newheight = height / condratio;
-	int newlength = newwidth * newheight * bpp;
-
-	if (condratio > width || condratio > height)
-		return 0;
-
-	uint8_t *cond_data = malloc(newlength);
-
 	if (!png_calc_bpp(png, &bpp))
 		return 0;
+
+	if (condratio <= 0 || condratio > width || condratio > height)
+		return 0;
+	int newwidth = int_ceil_div(width, condratio);
+	int newheight = int_ceil_div(height, condratio);
+	int newlength = newwidth * newheight * bpp;
+
+	uint8_t *cond_data = malloc(newlength);
 
 	uint32_t tmpbyte = 0;
 	int subindex = 0;
 	int condindex = 0;
+	// account for edge pixels that dont make up an entire square
+	int npixels = 0;
 
 	//TODO: not enough image data when result is 1px
 	
@@ -222,17 +226,21 @@ int png_condense(struct PNG *png)
 					for (int l = 0; l < condratio; l++) {
 						subindex = i + j*width*bpp + l*bpp
 							   + k*width*bpp + m;
-						if (subindex < raw_len)
+						// check we're within boundaries (l stays in same column)
+						if (subindex < raw_len && i+l*bpp < width*bpp) {
 							tmpbyte += raw_data[subindex];
-						/*printf("%d ", subindex);*/
+							npixels++;
+						}
 					}
 				}
-				tmpbyte /= condratio * condratio;
+				tmpbyte /= npixels;
+				npixels = 0;
 				/*printf("\ntmpbyte: %d\n", tmpbyte);*/
 				condindex = (i/condratio) +
 				            (j/condratio)*newwidth*bpp + m;
 				/*printf("condindex:%d\n", condindex);*/
-				cond_data[condindex] = (uint8_t)tmpbyte;
+				if (condindex < newlength)
+					cond_data[condindex] = (uint8_t)tmpbyte;
 				tmpbyte = 0;
 			}
 		}

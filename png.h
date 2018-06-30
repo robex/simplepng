@@ -100,7 +100,7 @@ int png_flip_horizontal(struct PNG *png);
 int png_flip_vertical(struct PNG *png);
 /* Condense png by condratio: downscale image by taking the average of
  * all pixels in the square formed by condratio ^ 2 */
-int png_condense(struct PNG *png);
+int png_condense(struct PNG *png, int condratio);
 
 /* Table of CRCs of all 8-bit messages. */
 extern uint32_t crc_table[256];
