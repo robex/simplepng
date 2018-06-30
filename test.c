@@ -216,23 +216,27 @@ void test_16_bit_rgb()
 
 void test_open(char *filename)
 {
+	char string[80];
 	struct PNG png;
-	printf(">>> "YELLOW("TEST")": parse \"%s\"\n", filename);
+	sprintf(string, ">>> "YELLOW("TEST")": parse \"%s\"\n", filename);
 	if (!png_open(&png, filename)) {
-		printf("png_open: error opening png\n");
+		print_aligned(string, RED("ERROR"), 70);
+		printf("png_open: error opening png %s\n", filename);
 	} else {
 		print_png_raw(&png);
+		print_aligned(string, GREEN("OK"), 70);
 		png_close(&png);
 	}
 }
 
 void test_copy(char *in, char *out)
 {
-	struct PNG png;
 	char string[80];
+	struct PNG png;
 	sprintf(string, ">>> "YELLOW("TEST")": copy \"%s\" to \"%s\"", in, out);
 	if (!png_open(&png, in)) {
-		printf("png_open: error opening png\n");
+		print_aligned(string, RED("ERROR"), 70);
+		printf("png_open: error opening png %s\n", in);
 		return;
 	}
 	if (!png_dump(&png, out))
@@ -284,7 +288,7 @@ void test_invert(char *filename)
 	sprintf(string, ">>> "YELLOW("TEST")": invert png %s", filename);
 	struct PNG png;
 	if (!png_open(&png, filename)) {
-		printf("png_open: error opening png\n");
+		printf("png_open: error opening png %s\n", filename);
 		return;
 	}
 	if (!png_invert(&png))
@@ -301,7 +305,7 @@ void test_swap(char *filename)
 	sprintf(string, ">>> "YELLOW("TEST")": swap png %s", filename);
 	struct PNG png;
 	if (!png_open(&png, "samples/ruben.png")) {
-		printf("png_open: error opening png\n");
+		printf("png_open: error opening png %s\n", filename);
 		return;
 	}
 	if (!png_swap(&png))
@@ -318,7 +322,7 @@ void test_rotate(char *filename)
 	sprintf(string, ">>> "YELLOW("TEST")": rotate png %s", filename);
 	struct PNG png;
 	if (!png_open(&png, filename)) {
-		printf("png_open: error opening png\n");
+		printf("png_open: error opening png %s\n", filename);
 		return;
 	}
 	if (!png_rotate(&png))
@@ -337,7 +341,7 @@ void test_replace(char *filename)
 	uint8_t src[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 	uint8_t dst[6] = {0xae, 0x22, 0xbb, 0xff, 0x77, 0x00};
 	if (!png_open(&png, filename)) {
-		printf("png_open: error opening png\n");
+		printf("png_open: error opening png %s\n", filename);
 		return;
 	}
 	if (!png_replace(&png, src, dst))
@@ -354,7 +358,7 @@ void test_flip_horiz(char *filename)
 	sprintf(string, ">>> "YELLOW("TEST")": flip horizontal png %s", filename);
 	struct PNG png;
 	if (!png_open(&png, filename)) {
-		printf("png_open: error opening png\n");
+		printf("png_open: error opening png %s\n", filename);
 		return;
 	}
 	if (!png_flip_horizontal(&png))
@@ -371,7 +375,7 @@ void test_flip_vert(char *filename)
 	sprintf(string, ">>> "YELLOW("TEST")": flip vertical png %s", filename);
 	struct PNG png;
 	if (!png_open(&png, filename)) {
-		printf("png_open: error opening png\n");
+		printf("png_open: error opening png %s\n", filename);
 		return;
 	}
 	if (!png_flip_vertical(&png))
@@ -389,7 +393,7 @@ void test_condense(char *filename, int condratio)
 	       condratio);
 	struct PNG png;
 	if (!png_open(&png, filename)) {
-		printf("png_open: error opening png\n");
+		printf("png_open: error opening png %s\n", filename);
 		return;
 	}
 	if (!png_condense(&png, condratio))
@@ -408,7 +412,7 @@ void test_pixelate(char *filename, int condratio)
 	       condratio);
 	struct PNG png;
 	if (!png_open(&png, filename)) {
-		printf("png_open: error opening png\n");
+		printf("png_open: error opening png %s\n", filename);
 		return;
 	}
 	if (!png_pixelate(&png, condratio))
