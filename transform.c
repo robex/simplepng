@@ -191,10 +191,8 @@ int png_condense(struct PNG *png)
 	int width = png->IHDR_chunk.width;
 	int height = png->IHDR_chunk.height;
 	int bpp;
-	int alpha = png_calc_alpha(png);
 
 	int condratio = 8;
-
 	int newwidth = width / condratio;
 	int newheight = height / condratio;
 	int newlength = newwidth * newheight * bpp;
