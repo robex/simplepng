@@ -1,4 +1,3 @@
-#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -116,17 +115,9 @@ int copy_idat(struct PNG *png, uint8_t *data, int fsize, int *pos)
 		data += length + 12;
 	}
 
+	memcpy(&png->IEND, iend, 12);
 	// didn't go inside the loop
 	return i != 0;
-}
-
-int copy_iend(struct PNG *png, uint8_t *data, int fsize)
-{
-	uint8_t *idat_type;
-	if ((idat_type = memmem(data, fsize, iend, 12)) == NULL)
-		return 0;
-	memcpy(&png->IEND, idat_type, 12);
-	return 1;
 }
 
 int get_file_size(FILE *f)
@@ -165,9 +156,6 @@ int png_open(struct PNG *png, char *filename)
 		return 0;
 	}
 	if (!copy_idat(png, data, fsize, &pos)) {
-		return 0;
-	}
-	if (!copy_iend(png, data, fsize)) {
 		return 0;
 	}
 	return 1;

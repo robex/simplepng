@@ -463,7 +463,8 @@ int main()
 	/*test_condense("samples/condense3.png", 2);*/
 	/*test_condense("samples/condense4.png", 9);*/
 	/*test_condense("samples/gtasabin.png", 8);*/
-	test_condense("samples/ruben.png", 8);
+	/*test_condense("samples/ruben.png", 8);*/
+	test_condense("samples/rectangle.png", 2);
 	test_pixelate("samples/ruben.png", 8);
 	test_swap("samples/ruben.png");
 }
