@@ -16,6 +16,9 @@ lib:
 	gcc -c -o transform.o transform.c
 	ar cr libsimplepng.a png.o filter.o crc.o transform.o
 
+clean:
+	rm -f *.o libsimplepng.a libsimplepng.so test
+
 lib_so: 
 	gcc -c -fpic -o png.o png.c
 	gcc -c -fpic -o crc.o crc.c

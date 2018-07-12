@@ -63,8 +63,9 @@ int png_open(struct PNG *png, char *filename);
 struct PNG png_init(int width, int height, uint8_t bit_depth,
 		    uint8_t color_type, uint8_t interlace);
 /* Write png data stream into struct png, setting up all necessary
- * fields */
-void png_write(struct PNG *png, uint8_t *data, int datalen);
+ * fields.
+ * isfiltered: if 0 -> *data is not filtered, a filter will be applied */
+void png_write(struct PNG *png, uint8_t *data, int datalen, int isfiltered);
 /* Return raw (uncompressed but filtered) data from png,
  * returns length of raw stream in rawlen (must be allocated) */
 uint8_t *png_get_raw_data(struct PNG *png, uint64_t *rawlen);

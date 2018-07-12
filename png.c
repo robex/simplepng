@@ -182,8 +182,9 @@ struct PNG png_init(int width, int height, uint8_t bit_depth,
 }
 
 /* Write png data stream into struct png, setting up all necessary
- * fields */
-void png_write(struct PNG *png, uint8_t *data, int datalen)
+ * fields.
+ * isfiltered: if 0 -> *data is not filtered, a filter will be applied */
+void png_write(struct PNG *png, uint8_t *data, int datalen, int isfiltered)
 {
 	uint64_t compdatalen = datalen*2;
 	uint8_t  *compdata   = malloc(compdatalen);
@@ -193,6 +194,15 @@ void png_write(struct PNG *png, uint8_t *data, int datalen)
 	}
 	png->nidat++;
 	png->IDAT = malloc(sizeof(struct chunk));
+ 
+	unsigned char *fil_data;
+	if (!isfiltered) {
+		int size;
+
+		apply_filter(png, data, &size, &fil_data);
+		data = fil_data;
+		datalen = size;
+	}
 
 	memcpy(&png->IDAT[0].type, idat, 4);
 	compress(compdata, &compdatalen, data, datalen);
@@ -208,6 +218,8 @@ void png_write(struct PNG *png, uint8_t *data, int datalen)
 	png->IDAT[0].crc = crc(crcbytes, compdatalen + 4);
 	png->IDAT[0].length = compdatalen;
 
+	if (!isfiltered)
+		free(fil_data);
 	free(crcbytes);
 	free(compdata);
 }

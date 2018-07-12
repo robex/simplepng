@@ -40,7 +40,7 @@ void test_8_bit_grey()
 		print_aligned(">>> "YELLOW("TEST")": 8bit grey data", RED("ERROR"), 70);
 	}
 
-	png_write(&png, fil_data, size);
+	png_write(&png, fil_data, size, 1);
 	if (!png_dump(&png, "samples/testfile_8bit_grey")) {
 		printf("png_dump: error writing to directory\n");
 	}
@@ -84,7 +84,7 @@ void test_8_bit_grey_alpha()
 		print_aligned(">>> "YELLOW("TEST")": 8bit grey alpha data", RED("ERROR"), 70);
 	}
 
-	png_write(&png, fil_data, size);
+	png_write(&png, fil_data, size, 1);
 	if (!png_dump(&png, "samples/testfile_8bit_grey_alpha")) {
 		printf("png_dump: error writing to directory\n");
 	}
@@ -117,7 +117,7 @@ void test_16_bit_grey()
 		print_aligned(">>> "YELLOW("TEST")": 16bit grey data", RED("ERROR"), 70);
 	}
 
-	png_write(&png, fil_data, size);
+	png_write(&png, fil_data, size, 1);
 	if (!png_dump(&png, "samples/testfile_16bit_grey")) {
 		printf("png_dump: error writing to directory\n");
 	}
@@ -161,7 +161,7 @@ void test_8_bit_rgb()
 		print_aligned(">>> "YELLOW("TEST")": 8bit rgb data", RED("ERROR"), 70);
 	}
 
-	png_write(&png, fil_data, 20);
+	png_write(&png, fil_data, 20, 1);
 	if (!png_dump(&png, "samples/testfile_8bit_rgb")) {
 		printf("png_dump: error writing to directory\n");
 	}
@@ -206,7 +206,7 @@ void test_16_bit_rgb()
 		print_aligned(">>> "YELLOW("TEST")": 16bit rgb data", RED("ERROR"), 70);
 	}
 
-	png_write(&png, fil_data, 38);
+	png_write(&png, fil_data, 38, 1);
 	if (!png_dump(&png, "samples/testfile_16bit_rgb")) {
 		printf("png_dump: error writing to directory\n");
 	}
@@ -389,8 +389,8 @@ void test_flip_vert(char *filename)
 void test_condense(char *filename, int condratio)
 {
 	char string[80];
-	sprintf(string, ">>> "YELLOW("TEST")": condense png %s with ratio %d", filename,
-	       condratio);
+	sprintf(string, ">>> "YELLOW("TEST")": condense png %s with ratio %d",
+		filename, condratio);
 	struct PNG png;
 	if (!png_open(&png, filename)) {
 		printf("png_open: error opening png %s\n", filename);
@@ -408,8 +408,8 @@ void test_condense(char *filename, int condratio)
 void test_pixelate(char *filename, int condratio)
 {
 	char string[80];
-	sprintf(string, ">>> "YELLOW("TEST")": pixelate png %s with ratio %d", filename,
-	       condratio);
+	sprintf(string, ">>> "YELLOW("TEST")": pixelate png %s with ratio %d",
+		filename, condratio);
 	struct PNG png;
 	if (!png_open(&png, filename)) {
 		printf("png_open: error opening png %s\n", filename);
@@ -421,6 +421,31 @@ void test_pixelate(char *filename, int condratio)
 		print_aligned(string, GREEN("OK"), 70);
 
 	png_dump(&png, "samples/pixelate_test");
+	png_close(&png);
+}
+
+void test_write_unfiltered(char *filename)
+{
+	char string[80];
+	sprintf(string, ">>> "YELLOW("TEST")": write unfiltered to png %s",
+		filename);
+	struct PNG png = png_init(3, 2, 16, 2, 0);
+
+	uint8_t raw_data[36] = {
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00,	// black
+		0xFF, 0xFF, 0x00, 0x00 ,0x00, 0x00,	// red
+		0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00,	// green
+		0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF,	// blue
+		0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,	// white
+		0xFF, 0xFF, 0x00, 0x00, 0xFF, 0xFF,	// purple
+	};
+
+	png_write(&png, raw_data, 36, 0);
+	if (!png_dump(&png, "samples/write_unfiltered"))
+		print_aligned(string, RED("ERROR"), 70);
+	else
+		print_aligned(string, GREEN("OK"), 70);
+
 	png_close(&png);
 }
 
@@ -458,6 +483,7 @@ int main()
 	test_replace("samples/java.png");
 	test_flip_horiz("samples/rms16alpha.png");
 	test_flip_vert("samples/rms16alpha.png");
+	test_write_unfiltered("samples/write_unfiltered");
 	/*test_condense("samples/condense.png", 2);*/
 	/*test_condense("samples/condense2.png", 3);*/
 	/*test_condense("samples/condense3.png", 2);*/

@@ -24,7 +24,7 @@ int write_unfiltered(struct PNG *png, uint8_t *raw_data)
 	if (!apply_filter(png, raw_data, (int*)&len, &fil_data)) {
 		return 0;
 	}
-	png_write(png, fil_data, len);
+	png_write(png, fil_data, len, 1);
 	free(raw_data);
 	free(fil_data);
 	return 1;
