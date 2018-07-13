@@ -11,23 +11,10 @@ uint8_t *get_unfiltered(struct PNG *png, int *raw_len)
 	uint8_t *fil_data = png_get_raw_data(png, &fil_len);
 
 	if (!remove_filter(png, fil_data, raw_len, &raw_data)) {
-		free(fil_data);
+		return NULL;
 	}
 	free(fil_data);
 	return raw_data;
-}
-
-int write_unfiltered(struct PNG *png, uint8_t *raw_data)
-{
-	uint8_t *fil_data;
-	uint64_t len;
-	if (!apply_filter(png, raw_data, (int*)&len, &fil_data)) {
-		return 0;
-	}
-	png_write(png, fil_data, len, 1);
-	free(raw_data);
-	free(fil_data);
-	return 1;
 }
 
 /* Invert color (doesn't invert alpha) */
@@ -45,8 +32,7 @@ int png_invert(struct PNG *png)
 		for (int j = 0; j < bpp-alpha; j++)
 			raw_data[i+j] = 0xFF - raw_data[i+j];
 	}
-	if (!write_unfiltered(png, raw_data))
-		return 0;
+	png_write(png, raw_data, raw_len, 0);
 	return 1;
 }
 
@@ -66,8 +52,7 @@ int png_replace(struct PNG *png, uint8_t *src_color, uint8_t *dst_color)
 			memcpy(raw_data+i, dst_color, bpp-alpha);
 		}
 	}
-	if (!write_unfiltered(png, raw_data))
-		return 0;
+	png_write(png, raw_data, raw_len, 0);
 	return 1;
 }
 
@@ -96,8 +81,7 @@ int png_flip_horizontal(struct PNG *png)
 		}
 	}
 
-	if (!write_unfiltered(png, raw_data))
-		return 0;
+	png_write(png, raw_data, raw_len, 0);
 	return 1;
 }
 
@@ -120,8 +104,7 @@ int png_flip_vertical(struct PNG *png)
 		memcpy(raw_data + end, tmp, width * bpp);
 	}
 
-	if (!write_unfiltered(png, raw_data))
-		return 0;
+	png_write(png, raw_data, raw_len, 0);
 	return 1;
 }
 
@@ -154,8 +137,7 @@ int png_rotate(struct PNG *png)
 	png->IHDR_chunk.width = height;
 	png->IHDR_chunk.height = width;
 	free(transp);
-	if (!write_unfiltered(png, raw_data))
-		return 0;
+	png_write(png, raw_data, raw_len, 0);
 	return 1;
 }
 
@@ -175,7 +157,7 @@ int png_swap(struct PNG *png)
 		memcpy(raw_data+i, raw_data+i+bpp, bpp);
 		memcpy(raw_data+i+bpp, tmp, bpp);
 	}
-	write_unfiltered(png, raw_data);
+	png_write(png, raw_data, raw_len, 0);
 	return 1;
 }
 
@@ -250,7 +232,7 @@ int png_condense(struct PNG *png, int condratio)
 	png->IHDR_chunk.height = newheight;
 
 	free(raw_data);
-	write_unfiltered(png, cond_data);
+	png_write(png, cond_data, newlength, 0);
 	return 1;
 }
 
@@ -313,6 +295,6 @@ int png_pixelate(struct PNG *png, int condratio)
 		}
 	}
 
-	write_unfiltered(png, raw_data);
+	png_write(png, raw_data, raw_len, 0);
 	return 1;
 }
