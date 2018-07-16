@@ -19,6 +19,9 @@ int png_calc_bpp(struct PNG *png, int *bpp)
 	case 2:
 		*bpp = 3;
 		break;
+	case 3:
+		*bpp = 1;
+		return 1;
 	case 4:
 		*bpp = 1;
 		alpha = 1;

@@ -5,7 +5,7 @@
 #include <byteswap.h>
 #include "png.h"
 
-/*#define TEST_PRINT_DATA*/
+#define TEST_PRINT_DATA
 
 uint8_t head[HEADER_SIZE] = {
 	0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a
@@ -14,10 +14,9 @@ uint8_t iend[IEND_SIZE] = {
 	0x00, 0x00, 0x00, 0x00, 0x49, 0x45,
 	0x4e, 0x44, 0xae, 0x42, 0x60, 0x82
 };
-uint8_t ihdr_type[4] = {
-	0x49, 0x48, 0x44, 0x52
-};
-uint8_t idat[4] = {0x49, 0x44, 0x41, 0x54};
+uint8_t ihdr_type[4] = { 0x49, 0x48, 0x44, 0x52 };
+uint8_t idat_type[4] = { 0x49, 0x44, 0x41, 0x54 };
+uint8_t plte_type[4] = { 0x50, 0x4c, 0x54, 0x45 };
 
 int copy_ihdr(struct PNG *png, uint8_t *data, int *pos)
 {
@@ -72,12 +71,50 @@ int copy_header(struct PNG *png, uint8_t *data, int *pos)
 	return 1;
 }
 
-int copy_idat(struct PNG *png, uint8_t *data, int fsize, int *pos)
+int parse_idat(struct PNG *png, uint8_t *data, int *pos, int length)
 {
-	uint8_t idat_type[4];
+	int i = png->nidat;
+	png->nidat++;
+
+	png->IDAT = realloc(png->IDAT, sizeof(struct chunk) * (i + 1));
+	png->IDAT[i].length = length;
+	memcpy(&png->IDAT[i].type, data + 4, 4);
+	png->IDAT[i].data = malloc(length);
+	memcpy(png->IDAT[i].data, data + 8, length);
+	uint32_t crc_calc = crc(data + 4, length + 4);
+
+	memcpy(&png->IDAT[i].crc, data + 8 + length, 4);
+	png->IDAT[i].crc = __bswap_32(png->IDAT[i].crc);
+	if (memcmp(&png->IDAT[i].crc, &crc_calc, 4)) {
+		// incorrect crc
+		return 0;
+	}
+	return 1;
+}
+
+int parse_plte(struct PNG *png, uint8_t *data, int *pos, int length)
+{
+	png->PLTE.length = length;
+	png->PLTE.data = malloc(length);
+	memcpy(png->PLTE.type, data + 4, 4);
+	memcpy(png->PLTE.data, data + 8, length);
+	uint32_t crc_calc = crc(data + 4, length + 4);
+
+	memcpy(&png->PLTE.crc, data + 8 + length, 4);
+	png->PLTE.crc = __bswap_32(png->PLTE.crc);
+	if (memcmp(&png->PLTE.crc, &crc_calc, 4)) {
+		// incorrect crc
+		return 0;
+	}
+
+	return 1;
+}
+
+int parse_chunks(struct PNG *png, uint8_t *data, int fsize, int *pos)
+{
+	uint8_t chunk_type[4];
 	png->IDAT = NULL;
 	png->nidat = 0;
-	int i = 0;
 	// data here is at length of first chunk after IHDR
 	data += *pos;
 
@@ -86,38 +123,25 @@ int copy_idat(struct PNG *png, uint8_t *data, int fsize, int *pos)
 		uint32_t length;
 		memcpy(&length, data, 4);
 		length = __bswap_32(length);
-		memcpy(idat_type, data + 4, 4);
+		memcpy(chunk_type, data + 4, 4);
 
-		if (memcmp(idat_type, idat, 4)) {
-			if (memcmp(idat_type, iend + 4, 4)) {
-				data += length + 12;
-				continue;
-			} else {
-				break;
-			}
+		if (!memcmp(chunk_type, idat_type, 4)) {
+			if (!parse_idat(png, data, pos, length))
+				return 0;
+		} else if (!memcmp(chunk_type, plte_type, 4)) {
+			if (!parse_plte(png, data, pos, length))
+				return 0;
+		} else if (!memcmp(chunk_type, iend + 4, 4)) {
+			memcpy(&png->IEND, iend, 12);
+			break;
+		} else {
 		}
-		png->IDAT = realloc(png->IDAT, sizeof(struct chunk) * (i + 1));
-		png->IDAT[i].length = length;
-		memcpy(&png->IDAT[i].type, data + 4, 4);
-		png->IDAT[i].data = malloc(length);
-		memcpy(png->IDAT[i].data, data + 8, length);
-		uint32_t crc_calc = crc(data + 4, length + 4);
-
-		memcpy(&png->IDAT[i].crc, data + 8 + length, 4);
-		png->IDAT[i].crc = __bswap_32(png->IDAT[i].crc);
-		if (memcmp(&png->IDAT[i].crc, &crc_calc, 4)) {
-			// incorrect crc
-			return 0;
-		}
-		i++;
-		png->nidat++;
 		// move data ptr to length of next chunk
-		data += length + 12;
+		data += 4 + 4 + length + 4;
 	}
 
-	memcpy(&png->IEND, iend, 12);
 	// didn't go inside the loop
-	return i != 0;
+	return png->nidat != 0;
 }
 
 int get_file_size(FILE *f)
@@ -155,7 +179,7 @@ int png_open(struct PNG *png, char *filename)
 	if (!copy_ihdr(png, data, &pos)) {
 		return 0;
 	}
-	if (!copy_idat(png, data, fsize, &pos)) {
+	if (!parse_chunks(png, data, fsize, &pos)) {
 		return 0;
 	}
 	return 1;
@@ -204,7 +228,7 @@ void png_write(struct PNG *png, uint8_t *data, int datalen, int isfiltered)
 		datalen = size;
 	}
 
-	memcpy(&png->IDAT[0].type, idat, 4);
+	memcpy(&png->IDAT[0].type, idat_type, 4);
 	compress(compdata, &compdatalen, data, datalen);
 	// must be freed with png_close
 	png->IDAT[0].data = malloc(compdatalen);
@@ -254,6 +278,14 @@ int png_dump(struct PNG *png, char *filename)
 	fwrite(&png->IHDR_chunk.interlace, 1, 1, f);
 	uint32_t beihdrcrc = __bswap_32(png->IHDR_chunk.crc);
 	fwrite(&beihdrcrc, 4, 1, f);
+	if (png->IHDR_chunk.color_type == PNG_PLTE) {
+		uint32_t beidatlen = __bswap_32(png->PLTE.length);
+		fwrite(&beidatlen, 4, 1, f);
+		fwrite(&png->PLTE.type, 4, 1, f);
+		fwrite(png->PLTE.data, 1, png->PLTE.length, f);
+		uint32_t beidatcrc = __bswap_32(png->PLTE.crc);
+		fwrite(&beidatcrc, 4, 1, f);
+	}
 	for (int i = 0; i < png->nidat; i++) {
 		uint32_t beidatlen = __bswap_32(png->IDAT[i].length);
 		fwrite(&beidatlen, 4, 1, f);
@@ -318,6 +350,20 @@ void print_png_raw(struct PNG *png)
 	printf("interlace: %02x\n", png->IHDR_chunk.interlace);
 	printf("crc: %08x\n", png->IHDR_chunk.crc);
 	printf("\n");
+
+	// palette png
+	if (png->IHDR_chunk.color_type == PNG_PLTE) {
+		printf("#### PLTE ####\n");
+		printf("length: %02x\n", png->PLTE.length);
+#ifdef TEST_PRINT_DATA
+		printf("\npalette data:");
+		for (int i = 0; i < png->PLTE.length; i++) {
+			if (i % 16 == 0) printf("\n");
+			printf("%02x ", png->PLTE.data[i]);
+		}
+#endif
+		printf("\ncrc: %08x\n", png->PLTE.crc);
+	}
 
 	for (int idats = 0; idats < png->nidat; idats++) {
 		int len = png->IDAT[idats].length;

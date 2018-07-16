@@ -7,10 +7,13 @@
 #define IHDR_SIZE_NO_CRC 17
 #define IEND_SIZE 12
 
+#define PNG_PLTE 3
+
 uint8_t head[HEADER_SIZE];
 uint8_t iend[IEND_SIZE];
 uint8_t ihdr_type[4];
-uint8_t idat[4];
+uint8_t idat_type[4];
+uint8_t plte_type[4];
 
 struct IHDR {
 	// width and height, in pixels
@@ -40,7 +43,7 @@ struct chunk {
 	// length of data
 	uint32_t length;
 	// chunk type: 4 case-sensitive ascii chars
-	uint8_t type[4];
+	uint8_t  type[4];
 	// chunk data, zlib compressed
 	uint8_t  *data;
 	// crc-32 of type + data
@@ -52,7 +55,7 @@ struct PNG {
 	uint8_t header[HEADER_SIZE];
 	// image metadata
 	struct IHDR IHDR_chunk;
-	struct chunk *chunks;
+	struct chunk PLTE;
 	struct chunk *IDAT;
 	int nidat;
 	// last chunk (always the same)

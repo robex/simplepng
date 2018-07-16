@@ -218,7 +218,7 @@ void test_open(char *filename)
 {
 	char string[80];
 	struct PNG png;
-	sprintf(string, ">>> "YELLOW("TEST")": parse \"%s\"\n", filename);
+	sprintf(string, ">>> "YELLOW("TEST")": parse \"%s\"", filename);
 	if (!png_open(&png, filename)) {
 		print_aligned(string, RED("ERROR"), 70);
 		printf("png_open: error opening png %s\n", filename);
@@ -473,10 +473,13 @@ int main()
 	/*test_open("samples/condense_test");*/
 	/*printf("\n");*/
 	/*test_open("samples/pixel.png");*/
+	/*printf("\n");*/
+	test_open("samples/palette.png");
 
-	test_copy("samples/testfile_8bit_grey", "samples/copy_test");
-	test_copy("samples/rms.png", "samples/copy_test");
-	test_copy("samples/pixel.png", "samples/copy_test");
+	/*test_copy("samples/testfile_8bit_grey", "samples/copy_test");*/
+	/*test_copy("samples/rms.png", "samples/copy_test");*/
+	/*test_copy("samples/pixel.png", "samples/copy_test");*/
+	test_copy("samples/palette.png", "samples/copy_test");
 	test_remove_filter();
 	test_invert("samples/ruben_grey.png");
 	test_rotate("samples/rms16alpha.png");
