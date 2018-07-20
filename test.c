@@ -30,7 +30,7 @@ void test_8_bit_grey()
 		0x00, 0x22, 0x54, 0x8a, 0xbf, 0xff
 	};
 
-	int size;
+	uint64_t size;
 	uint8_t *fil_data;
 	apply_filter(&png, raw_data, &size, &fil_data);
 
@@ -73,7 +73,7 @@ void test_8_bit_grey_alpha()
 		0xff, 0x1F
 	};
 
-	int size;
+	uint64_t size;
 	uint8_t *fil_data;
 	apply_filter(&png, raw_data, &size, &fil_data);
 
@@ -107,7 +107,7 @@ void test_16_bit_grey()
 		0x60, 0xbf, 0x70, 0xff
 	};
 
-	int size;
+	uint64_t size;
 	uint8_t *fil_data;
 	apply_filter(&png, raw_data, &size, &fil_data);
 
@@ -151,7 +151,7 @@ void test_8_bit_rgb()
 		0xFF, 0x00, 0xFF,	// purple
 	};
 
-	int size;
+	uint64_t size;
 	uint8_t *fil_data;
 	apply_filter(&png, raw_data, &size, &fil_data);
 
@@ -196,7 +196,7 @@ void test_16_bit_rgb()
 		0xFF, 0xFF, 0x00, 0x00, 0xFF, 0xFF,	// purple
 	};
 
-	int size;
+	uint64_t size;
 	uint8_t *fil_data;
 	apply_filter(&png, raw_data, &size, &fil_data);
 
@@ -260,9 +260,9 @@ void test_remove_filter()
 		0xff, 0x1F
 	};
 
-	int size;
+	uint64_t size;
 	uint8_t *fil_data;
-	int sizerem;
+	uint64_t sizerem;
 	uint8_t *removed_filter;
 	if (!apply_filter(&png, raw_data, &size, &fil_data)) {
 		print_aligned(">>> "YELLOW("TEST")": removing filter", RED("ERROR"), 70);
@@ -474,7 +474,7 @@ int main()
 	/*printf("\n");*/
 	/*test_open("samples/pixel.png");*/
 	/*printf("\n");*/
-	test_open("samples/palette.png");
+	/*test_open("samples/palette.png");*/
 
 	/*test_copy("samples/testfile_8bit_grey", "samples/copy_test");*/
 	/*test_copy("samples/rms.png", "samples/copy_test");*/

@@ -4,7 +4,7 @@
 #include <string.h>
 #include "png.h"
 
-uint8_t *get_unfiltered(struct PNG *png, int *raw_len)
+uint8_t *get_unfiltered(struct PNG *png, uint64_t *raw_len)
 {
 	uint64_t fil_len;
 	uint8_t *raw_data;
@@ -20,7 +20,7 @@ uint8_t *get_unfiltered(struct PNG *png, int *raw_len)
 /* Invert color (doesn't invert alpha) */
 int png_invert(struct PNG *png)
 {
-	int raw_len;
+	uint64_t raw_len;
 	uint8_t *raw_data;
 	int bpp;
 	int alpha = png_calc_alpha(png);
@@ -39,7 +39,7 @@ int png_invert(struct PNG *png)
 /* Replace src_color (must be the right size) with dst_color */
 int png_replace(struct PNG *png, uint8_t *src_color, uint8_t *dst_color)
 {
-	int raw_len;
+	uint64_t raw_len;
 	uint8_t *raw_data;
 	int bpp;
 	int alpha = png_calc_alpha(png);
@@ -58,7 +58,7 @@ int png_replace(struct PNG *png, uint8_t *src_color, uint8_t *dst_color)
 
 int png_flip_horizontal(struct PNG *png)
 {
-	int raw_len;
+	uint64_t raw_len;
 	uint8_t *raw_data = get_unfiltered(png, &raw_len);
 	int width = png->IHDR_chunk.width;
 	int height = png->IHDR_chunk.height;
@@ -87,7 +87,7 @@ int png_flip_horizontal(struct PNG *png)
 
 int png_flip_vertical(struct PNG *png)
 {
-	int raw_len;
+	uint64_t raw_len;
 	uint8_t *raw_data = get_unfiltered(png, &raw_len);
 	int width = png->IHDR_chunk.width;
 	int height = png->IHDR_chunk.height;
@@ -111,7 +111,7 @@ int png_flip_vertical(struct PNG *png)
 /* Rotate png 90 degrees clockwise */
 int png_rotate(struct PNG *png)
 {
-	int raw_len;
+	uint64_t raw_len;
 	uint8_t *raw_data = get_unfiltered(png, &raw_len);
 	int width = png->IHDR_chunk.width;
 	int height = png->IHDR_chunk.height;
@@ -144,7 +144,7 @@ int png_rotate(struct PNG *png)
 /* Swap each pixel with its right neighbour */
 int png_swap(struct PNG *png)
 {
-	int raw_len;
+	uint64_t raw_len;
 	uint8_t *raw_data;
 	int bpp;
 	if (!png_calc_bpp(png, &bpp))
@@ -171,7 +171,7 @@ int int_ceil_div(int dividend, int divisor) {
 //TODO: make pixelation (set average to all pixels, dont change image size)
 int png_condense(struct PNG *png, int condratio)
 {
-	int raw_len;
+	uint64_t raw_len;
 	uint8_t *raw_data = get_unfiltered(png, &raw_len);
 	int width = png->IHDR_chunk.width;
 	int height = png->IHDR_chunk.height;
@@ -238,7 +238,7 @@ int png_condense(struct PNG *png, int condratio)
 
 int png_pixelate(struct PNG *png, int condratio)
 {
-	int raw_len;
+	uint64_t raw_len;
 	uint8_t *raw_data = get_unfiltered(png, &raw_len);
 	int width = png->IHDR_chunk.width;
 	int height = png->IHDR_chunk.height;

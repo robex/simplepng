@@ -46,7 +46,7 @@ int png_calc_alpha(struct PNG *png)
 	       png->IHDR_chunk.bit_depth >> 3 : 0;
 }
 
-int apply_filter(struct PNG *png, uint8_t *data, int *filteredlen,
+int apply_filter(struct PNG *png, uint8_t *data, uint64_t *filteredlen,
 		 uint8_t **filtered_data)
 {
 	int width = png->IHDR_chunk.width;
@@ -160,7 +160,7 @@ int decode_filter(uint8_t *line, int lineno, int width, uint8_t filterbyte,
 	return 1;
 }
 
-int remove_filter(struct PNG *png, uint8_t *filtered_data, int *rawlen,
+int remove_filter(struct PNG *png, uint8_t *filtered_data, uint64_t *rawlen,
 		  uint8_t **raw_data)
 {
 	int width = png->IHDR_chunk.width;

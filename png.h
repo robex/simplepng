@@ -85,10 +85,10 @@ int png_calc_bpp(struct PNG *png, int *bpp);
 int png_calc_alpha(struct PNG *png);
 
 // only free filtered_data if function returns 1
-int apply_filter(struct PNG *png, uint8_t *data, int *filteredlen,
+int apply_filter(struct PNG *png, uint8_t *data, uint64_t *filteredlen,
 		 uint8_t **filtered_data);
 // only free raw_data if function returns 1
-int remove_filter(struct PNG *png, uint8_t *filtered_data, int *rawlen,
+int remove_filter(struct PNG *png, uint8_t *filtered_data, uint64_t *rawlen,
 		  uint8_t **raw_data);
 
 

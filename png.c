@@ -221,7 +221,7 @@ void png_write(struct PNG *png, uint8_t *data, int datalen, int isfiltered)
  
 	unsigned char *fil_data;
 	if (!isfiltered) {
-		int size;
+		uint64_t size;
 
 		apply_filter(png, data, &size, &fil_data);
 		data = fil_data;
@@ -307,7 +307,6 @@ uint8_t *png_get_raw_data(struct PNG *png, uint64_t *rawlen)
 	*rawlen = (png->IHDR_chunk.width*bpp+1) * png->IHDR_chunk.height;
 	uint8_t *data_raw = malloc(*rawlen);
 	uint8_t *tmp = malloc(*rawlen);
-	int pos = 0;
 	int len = 0;
 
 	for (int i = 0; i < png->nidat; i++) {
@@ -315,7 +314,6 @@ uint8_t *png_get_raw_data(struct PNG *png, uint64_t *rawlen)
 		len += png->IDAT[i].length;
 	}
 	uncompress(data_raw, rawlen, tmp, len);
-	*rawlen = pos;
 	free(tmp);
 	return data_raw;
 }
