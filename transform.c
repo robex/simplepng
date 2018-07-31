@@ -4,6 +4,9 @@
 #include <string.h>
 #include "png.h"
 
+#define MAX(x, y) (((x) > (y)) ? (x) : (y))
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
+
 uint8_t *get_unfiltered(struct PNG *png, uint64_t *raw_len)
 {
 	uint64_t fil_len;
@@ -33,7 +36,86 @@ int png_invert(struct PNG *png)
 			raw_data[i+j] = 0xFF - raw_data[i+j];
 	}
 	png_write(png, raw_data, raw_len, 0);
+	free(raw_data);
 	return 1;
+}
+
+/* Append p2 to the right of p1 and return the result in a new PNG
+ * ret is the return value (must be allocated)
+ * Restrictions (hopefully to change soon):
+ * 	- they must be the same height
+ * 	- they must be the same color type
+ * 	- they must have the same bit depth
+ */
+struct PNG png_append_horiz(struct PNG *p1, struct PNG *p2, int *ret)
+{
+	struct PNG res;
+	uint64_t raw_len_1;
+	uint8_t *raw_data_1;
+	int bpp1;
+	if (!png_calc_bpp(p1, &bpp1)) {
+		*ret = 0;
+		return res;
+	}
+
+	uint64_t raw_len_2;
+	uint8_t *raw_data_2;
+
+	raw_data_1 = get_unfiltered(p1, &raw_len_1);
+	raw_data_2 = get_unfiltered(p2, &raw_len_2);
+
+	int width1 = p1->IHDR_chunk.width;
+	int width2 = p2->IHDR_chunk.width;
+	int height1 = p1->IHDR_chunk.height;
+	int height2 = p2->IHDR_chunk.height;
+
+	int newwidth = width1 + width2;
+	int newheight = MAX(height1, height2);
+	uint64_t new_len = (newwidth * bpp1) * newheight;
+	uint8_t *new_data = calloc(1, new_len);
+
+	/*printf("newheight: %d\n", newheight);*/
+	/*printf("newwidth: %d\n", newwidth);*/
+
+	res = png_init(newwidth, newheight, p1->IHDR_chunk.bit_depth,
+		       p1->IHDR_chunk.color_type, 0);
+
+	/*
+	 *  new_data:
+	 *
+	 *        pos1               pos2
+	 *         |                  |
+	 *         v                  v
+	 *	   +------------------------------------+
+	 *	   |  png1 - row0     |  png2 - row0    |
+	 *	   +------------------+-----------------+
+	 *	   |  png1 - row1     |  png2 - row1    |
+	 *	   +------------------------------------+
+	 */
+
+	for (int i = 0; i < newheight; i++) {
+		int pos1 = i * (newwidth * bpp1);
+		int pos2 = pos1 + width1 * bpp1;
+		int png1off = i * (width1 * bpp1);
+		int png2off = i * (width2 * bpp1);
+		// dont access out of bounds, image will be transparent
+		// since the memory is allocated with calloc
+		if (i < height1) {
+			memcpy(new_data + pos1, raw_data_1 + png1off,
+			       width1 * bpp1);
+		}
+		if (i < height2) {
+			memcpy(new_data + pos2, raw_data_2 + png2off,
+			       width2 * bpp1);
+		}
+	}
+	png_write(&res, new_data, new_len, 0);
+
+	free(raw_data_1);
+	free(raw_data_2);
+	free(new_data);
+	*ret = 1;
+	return res;
 }
 
 /* Replace src_color (must be the right size) with dst_color */
@@ -53,6 +135,7 @@ int png_replace(struct PNG *png, uint8_t *src_color, uint8_t *dst_color)
 		}
 	}
 	png_write(png, raw_data, raw_len, 0);
+	free(raw_data);
 	return 1;
 }
 
@@ -82,6 +165,7 @@ int png_flip_horizontal(struct PNG *png)
 	}
 
 	png_write(png, raw_data, raw_len, 0);
+	free(raw_data);
 	return 1;
 }
 
@@ -105,6 +189,7 @@ int png_flip_vertical(struct PNG *png)
 	}
 
 	png_write(png, raw_data, raw_len, 0);
+	free(raw_data);
 	return 1;
 }
 
@@ -138,6 +223,7 @@ int png_rotate(struct PNG *png)
 	png->IHDR_chunk.height = width;
 	free(transp);
 	png_write(png, raw_data, raw_len, 0);
+	free(raw_data);
 	return 1;
 }
 
@@ -158,6 +244,7 @@ int png_swap(struct PNG *png)
 		memcpy(raw_data+i+bpp, tmp, bpp);
 	}
 	png_write(png, raw_data, raw_len, 0);
+	free(raw_data);
 	return 1;
 }
 
@@ -233,6 +320,7 @@ int png_condense(struct PNG *png, int condratio)
 
 	free(raw_data);
 	png_write(png, cond_data, newlength, 0);
+	free(cond_data);
 	return 1;
 }
 
@@ -296,5 +384,6 @@ int png_pixelate(struct PNG *png, int condratio)
 	}
 
 	png_write(png, raw_data, raw_len, 0);
+	free(raw_data);
 	return 1;
 }

@@ -323,6 +323,8 @@ void png_close(struct PNG *png)
 	for (int i = 0; i < png->nidat; i++) {
 		free(png->IDAT[i].data);
 	}
+	if (png->IHDR_chunk.color_type == PNG_PLTE)
+		free(png->PLTE.data);
 	free(png->IDAT);
 }
 

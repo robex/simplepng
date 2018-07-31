@@ -106,6 +106,7 @@ int png_flip_vertical(struct PNG *png);
  * all pixels in the square formed by condratio ^ 2 */
 int png_condense(struct PNG *png, int condratio);
 int png_pixelate(struct PNG *png, int condratio);
+struct PNG png_append_horiz(struct PNG *p1, struct PNG *p2, int *ret);
 
 /* Table of CRCs of all 8-bit messages. */
 extern uint32_t crc_table[256];
