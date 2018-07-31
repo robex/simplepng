@@ -102,23 +102,22 @@ void up_filter(uint8_t *line, int lineno, int width, int bpp)
 
 void avg_filter(uint8_t *line, int lineno, int width, int bpp)
 {
-	if (lineno == 0)
-		return;
+	int prior = 0;
+	int left  = 0;
 	for (int i = 0; i < width; i++) {
-		if (i < bpp) {
-			line[i] += line[i-width] / 2;
-		} else {
-			line[i] += (((uint16_t)line[i-bpp] +
-				    (uint16_t)line[i-width]) / 2) % 0x100;
+		if (lineno != 0)
+			prior = line[i-width];
+		if (i >= bpp) {
+			left = line[i-bpp];
 		}
+		line[i] += (((uint16_t)left +
+			    (uint16_t)prior) / 2) % 0x100;
 	}
 }
 
 void paeth_filter(uint8_t *line, int lineno, int width, int bpp)
 {
 	int paetha, paethb, paethc;
-	if (lineno == 0)
-		return;
 	for (int i = 0; i < width; i++) {
 		if (i < bpp) {
 			paetha = 0;
@@ -128,6 +127,10 @@ void paeth_filter(uint8_t *line, int lineno, int width, int bpp)
 			paetha = (int)line[i-bpp];
 			paethb = (int)line[i-width];
 			paethc = (int)line[i-width-bpp];
+			if (lineno == 0) {
+				paethb = 0;
+				paethc = 0;
+			}
 		}
 
 		line[i] += paeth_predictor(paetha, paethb,

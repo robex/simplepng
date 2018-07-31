@@ -504,9 +504,10 @@ int main()
 	/*printf("\n");*/
 	/*test_open("samples/palette.png");*/
 
-	/*test_copy("samples/testfile_8bit_grey", "samples/copy_test");*/
-	/*test_copy("samples/rms.png", "samples/copy_test");*/
-	/*test_copy("samples/pixel.png", "samples/copy_test");*/
+	test_copy("samples/testfile_8bit_grey", "samples/copy_test");
+	test_copy("samples/rms.png", "samples/copy_test");
+	test_copy("samples/pixel.png", "samples/copy_test");
+	test_rotate("samples/rms16alpha.png");
 	test_copy("samples/palette.png", "samples/copy_test");
 	test_remove_filter();
 	test_invert("samples/ruben_grey.png");
@@ -525,5 +526,5 @@ int main()
 	test_pixelate("samples/ruben.png", 8);
 	test_swap("samples/ruben.png");
 	test_append_horiz("samples/rms16alpha.png", "samples/rms16alpha.png");
-	test_append_horiz("samples/txt2.png", "samples/rectangle.png");
+	test_append_horiz("samples/grad.png", "samples/ruben.png");
 }
