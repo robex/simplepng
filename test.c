@@ -475,6 +475,32 @@ void test_append_horiz(char *file1, char *file2)
 	png_close(&png2);
 }
 
+void test_append_vert(char *file1, char *file2)
+{
+	char string[80];
+	sprintf(string, ">>> "YELLOW("TEST")": append %s, %s",
+		file1, file2);
+	struct PNG png1, png2;
+	if (!png_open(&png1, file1)) {
+		printf("png_open: error opening png %s\n", file1);
+		return;
+	}
+	if (!png_open(&png2, file2)) {
+		printf("png_open: error opening png %s\n", file2);
+		return;
+	}
+	int ret;
+	struct PNG app = png_append_vert(&png1, &png2, &ret);
+	if (!ret)
+		print_aligned(string, RED("ERROR"), 70);
+	else
+		print_aligned(string, GREEN("OK"), 70);
+	png_dump(&app, "samples/vert_append_test");
+	png_close(&app);
+	png_close(&png1);
+	png_close(&png2);
+}
+
 int main()
 {
 	test_8_bit_grey();
@@ -526,5 +552,7 @@ int main()
 	test_pixelate("samples/ruben.png", 8);
 	test_swap("samples/ruben.png");
 	test_append_horiz("samples/rms16alpha.png", "samples/rms16alpha.png");
-	test_append_horiz("samples/grad.png", "samples/ruben.png");
+	/*test_append_vert("samples/grad.png", "samples/ruben.png");*/
+	/*test_append_vert("samples/ruben.png", "samples/ruben.png");*/
+	test_append_vert("samples/rms16alpha.png", "samples/rms16alpha.png");
 }

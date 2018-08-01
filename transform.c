@@ -43,7 +43,6 @@ int png_invert(struct PNG *png)
 /* Append p2 to the right of p1 and return the result in a new PNG
  * ret is the return value (must be allocated)
  * Restrictions (hopefully to change soon):
- * 	- they must be the same height
  * 	- they must be the same color type
  * 	- they must have the same bit depth
  */
@@ -109,6 +108,69 @@ struct PNG png_append_horiz(struct PNG *p1, struct PNG *p2, int *ret)
 			       width2 * bpp1);
 		}
 	}
+	png_write(&res, new_data, new_len, 0);
+
+	free(raw_data_1);
+	free(raw_data_2);
+	free(new_data);
+	*ret = 1;
+	return res;
+}
+
+/* Append p2 below p1 and return the result in a new PNG
+ * ret is the return value (must be allocated)
+ * Restrictions (hopefully to change soon):
+ * 	- they must be the same color type
+ * 	- they must have the same bit depth
+ */
+struct PNG png_append_vert(struct PNG *p1, struct PNG *p2, int *ret)
+{
+	struct PNG res;
+	int bpp1;
+	if (!png_calc_bpp(p1, &bpp1)) {
+		*ret = 0;
+		return res;
+	}
+
+	uint64_t raw_len_1;
+	uint8_t *raw_data_1;
+	uint64_t raw_len_2;
+	uint8_t *raw_data_2;
+
+	raw_data_1 = get_unfiltered(p1, &raw_len_1);
+	raw_data_2 = get_unfiltered(p2, &raw_len_2);
+	if (raw_data_1 == NULL || raw_data_2 == NULL) {
+		*ret = 0;
+		return res;
+	}
+
+	int width1 = p1->IHDR_chunk.width;
+	int width2 = p2->IHDR_chunk.width;
+	int height1 = p1->IHDR_chunk.height;
+	int height2 = p2->IHDR_chunk.height;
+
+	int newwidth = MAX(width1, width2);
+	int newheight = height1 + height2;
+	uint64_t new_len = (newwidth * bpp1) * newheight;
+	uint8_t *new_data = calloc(1, new_len);
+
+	/*printf("newheight: %d\n", newheight);*/
+	/*printf("newwidth: %d\n", newwidth);*/
+
+	res = png_init(newwidth, newheight, p1->IHDR_chunk.bit_depth,
+		       p1->IHDR_chunk.color_type, 0);
+
+	for (int i = 0; i < height1; i++) {
+		int bigrow = i * (newwidth * bpp1);
+		int row = i * (width1 * bpp1);
+		memcpy(new_data + bigrow, raw_data_1 + row, width1 * bpp1);
+	}
+	for (int i = 0; i < height2; i++) {
+		int bigrow = (i + height1) * (newwidth * bpp1);
+		int row = i * (width2 * bpp1);
+		memcpy(new_data + bigrow, raw_data_2 + row, width2 * bpp1);
+	}
+
 	png_write(&res, new_data, new_len, 0);
 
 	free(raw_data_1);

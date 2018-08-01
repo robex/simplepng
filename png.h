@@ -106,7 +106,20 @@ int png_flip_vertical(struct PNG *png);
  * all pixels in the square formed by condratio ^ 2 */
 int png_condense(struct PNG *png, int condratio);
 int png_pixelate(struct PNG *png, int condratio);
+/* Append p2 to the right of p1 and return the result in a new PNG
+ * ret is the return value (must be allocated)
+ * Restrictions (hopefully to change soon):
+ * 	- they must be the same color type
+ * 	- they must have the same bit depth
+ */
 struct PNG png_append_horiz(struct PNG *p1, struct PNG *p2, int *ret);
+/* Append p2 below p1 and return the result in a new PNG
+ * ret is the return value (must be allocated)
+ * Restrictions (hopefully to change soon):
+ * 	- they must be the same color type
+ * 	- they must have the same bit depth
+ */
+struct PNG png_append_vert(struct PNG *p1, struct PNG *p2, int *ret);
 
 /* Table of CRCs of all 8-bit messages. */
 extern uint32_t crc_table[256];

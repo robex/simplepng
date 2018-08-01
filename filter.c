@@ -121,7 +121,10 @@ void paeth_filter(uint8_t *line, int lineno, int width, int bpp)
 	for (int i = 0; i < width; i++) {
 		if (i < bpp) {
 			paetha = 0;
-			paethb = (int)line[i-width];
+			if (lineno == 0)
+				paethb = 0;
+			else
+				paethb = (int)line[i-width];
 			paethc = 0;
 		} else {
 			paetha = (int)line[i-bpp];
