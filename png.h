@@ -120,6 +120,9 @@ struct PNG png_append_horiz(struct PNG *p1, struct PNG *p2, int *ret);
  * 	- they must have the same bit depth
  */
 struct PNG png_append_vert(struct PNG *p1, struct PNG *p2, int *ret);
+void png_draw_text(struct PNG *png, int x, int y, char *str);
+
+uint8_t *get_unfiltered(struct PNG *png, uint64_t *raw_len);
 
 /* Table of CRCs of all 8-bit messages. */
 extern uint32_t crc_table[256];

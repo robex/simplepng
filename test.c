@@ -501,6 +501,27 @@ void test_append_vert(char *file1, char *file2)
 	png_close(&png2);
 }
 
+void test_font(char *filename)
+{
+	char string[80];
+	sprintf(string, ">>> "YELLOW("TEST")": write string to png %s",
+		filename);
+	struct PNG png;
+	if (!png_open(&png, filename)) {
+		print_aligned(string, RED("ERROR"), 70);
+		printf("png_open: error opening png %s\n", filename);
+	} else {
+		png_draw_text(&png, 20, 40, "i cant believe I got this");
+		if (!png_dump(&png, "samples/draw_test")) {
+			print_aligned(string, RED("ERROR"), 70);
+			printf("png_dump: error writing to directory\n");
+		} else {
+			print_aligned(string, GREEN("OK"), 70);
+		}
+		png_close(&png);
+	}
+}
+
 int main()
 {
 	test_8_bit_grey();
@@ -555,4 +576,5 @@ int main()
 	/*test_append_vert("samples/grad.png", "samples/ruben.png");*/
 	/*test_append_vert("samples/ruben.png", "samples/ruben.png");*/
 	test_append_vert("samples/rms16alpha.png", "samples/rms16alpha.png");
+	test_font("samples/black_bg.png");
 }
