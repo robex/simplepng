@@ -511,7 +511,7 @@ void test_font(char *filename)
 		print_aligned(string, RED("ERROR"), 70);
 		printf("png_open: error opening png %s\n", filename);
 	} else {
-		png_draw_text(&png, 20, 40, "i cant believe I got this");
+		png_draw_text(&png, 0, 390, "i cant believe I got this and this is a really long string, will it work?");
 		if (!png_dump(&png, "samples/draw_test")) {
 			print_aligned(string, RED("ERROR"), 70);
 			printf("png_dump: error writing to directory\n");
@@ -576,5 +576,7 @@ int main()
 	/*test_append_vert("samples/grad.png", "samples/ruben.png");*/
 	/*test_append_vert("samples/ruben.png", "samples/ruben.png");*/
 	test_append_vert("samples/rms16alpha.png", "samples/rms16alpha.png");
-	test_font("samples/black_bg.png");
+	/*test_font("samples/black_bg.png");*/
+	/*test_font("samples/ruben.png");*/
+	test_font("samples/rms16alpha.png");
 }
