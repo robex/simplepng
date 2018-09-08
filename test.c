@@ -511,7 +511,7 @@ void test_font(char *filename)
 		print_aligned(string, RED("ERROR"), 70);
 		printf("png_open: error opening png %s\n", filename);
 	} else {
-		png_draw_text(&png, 0, 390, "i cant believe I got this and this is a really long string, will it work?");
+		png_draw_text(&png, 20, 39, "this is a really long string");
 		if (!png_dump(&png, "samples/draw_test")) {
 			print_aligned(string, RED("ERROR"), 70);
 			printf("png_dump: error writing to directory\n");

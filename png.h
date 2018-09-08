@@ -127,6 +127,8 @@ struct PNG png_append_horiz(struct PNG *p1, struct PNG *p2, int *ret);
  * 	- they must have the same bit depth
  */
 struct PNG png_append_vert(struct PNG *p1, struct PNG *p2, int *ret);
+/* Write string *str in the image width the left upper corner at x, y.
+ * Font is 8*8 px. It must fit in the image or the text will be cut. */
 int png_draw_text(struct PNG *png, int x, int y, char *str);
 
 uint8_t *get_unfiltered(struct PNG *png, uint64_t *raw_len);

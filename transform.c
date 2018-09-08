@@ -114,10 +114,7 @@ struct PNG png_append_horiz(struct PNG *p1, struct PNG *p2, int *ret)
 
 	res = png_init(newwidth, newheight, t1.bit_depth,
 		       t1.color_type, 0);
-
-	/*
-	 *  new_data:
-	 *
+	/*  new_data:
 	 *        pos1               pos2
 	 *         |                  |
 	 *         v                  v
@@ -127,7 +124,6 @@ struct PNG png_append_horiz(struct PNG *p1, struct PNG *p2, int *ret)
 	 *	   |  png1 - row1     |  png2 - row1    |
 	 *	   +------------------------------------+
 	 */
-
 	for (int i = 0; i < newheight; i++) {
 		int pos1 = i * (newwidth * t1.bpp);
 		int pos2 = pos1 + t1.width * t1.bpp;
@@ -273,15 +269,16 @@ int png_rotate(struct PNG *png)
 
 	// reverse rows and transpose matrix
 	for (int i = 0; i < tf.height; i++) {
-		memcpy(transp+i*tf.width*tf.bpp, tf.data+(tf.height-1-i)*tf.width*tf.bpp,
-		       tf.width*tf.bpp);
+		memcpy(transp + i * tf.width * tf.bpp,
+		       tf.data + (tf.height - 1 -i) * tf.width * tf.bpp,
+		       tf.width * tf.bpp);
 	}
 
 	for (int j = 0; j < tf.height; j++) {
 		for (int i = 0; i < tf.width; i++) {
-			int dst = (i*tf.height+j)*tf.bpp;
-			int src = (j*tf.width+i)*tf.bpp;
-			memcpy(tf.data+dst, transp+src, tf.bpp);
+			int dst = (i * tf.height + j) * tf.bpp;
+			int src = (j * tf.width + i) * tf.bpp;
+			memcpy(tf.data + dst, transp + src, tf.bpp);
 		}
 	}
 
@@ -337,23 +334,24 @@ int png_condense(struct PNG *png, int condratio)
 	int condindex = 0;
 	// account for edge pixels that dont make up an entire square
 	int npixels = 0;
+	int rwidth = tf.width * tf.bpp;
 
 	//TODO: not enough image data when result is 1px
 	
 	// total tf.height, increased in condratio steps
 	for (int j = 0; j < tf.height; j+=condratio) {
 		// total tf.width, increased in condratio steps
-		for (int i = 0; i < tf.width*tf.bpp; i+=condratio*tf.bpp) {
+		for (int i = 0; i < rwidth; i+=condratio*tf.bpp) {
 			// bytes per pixel inside each submatrix
 			for (int m = 0; m < tf.bpp; m++) {
 				// submatrix tf.height
 				for (int k = 0; k < condratio; k++) {
 					// submatrix tf.width
 					for (int l = 0; l < condratio; l++) {
-						subindex = i + j*tf.width*tf.bpp + l*tf.bpp
-							   + k*tf.width*tf.bpp + m;
+						subindex = i + j*rwidth + l*tf.bpp
+							   + k*rwidth + m;
 						// check we're within boundaries (l stays in same column)
-						if (subindex < tf.len && i+l*tf.bpp < tf.width*tf.bpp) {
+						if (subindex < tf.len && i+l*tf.bpp < rwidth) {
 							tmpbyte += tf.data[subindex];
 							npixels++;
 						}
@@ -394,23 +392,24 @@ int png_pixelate(struct PNG *png, int condratio)
 	int subindex = 0;
 	// account for edge pixels that dont make up an entire square
 	int npixels = 0;
+	int rwidth = tf.width * tf.bpp;
 
 	//TODO: not enough image data when result is 1px
 	
 	// total height, increased in condratio steps
 	for (int j = 0; j < tf.height; j+=condratio) {
 		// total width, increased in condratio steps
-		for (int i = 0; i < tf.width*tf.bpp; i+=condratio*tf.bpp) {
+		for (int i = 0; i < rwidth; i+=condratio*tf.bpp) {
 			// bytes per pixel inside each submatrix
 			for (int m = 0; m < tf.bpp; m++) {
 				// submatrix height
 				for (int k = 0; k < condratio; k++) {
 					// submatrix width
 					for (int l = 0; l < condratio; l++) {
-						subindex = i + j*tf.width*tf.bpp + l*tf.bpp
-							   + k*tf.width*tf.bpp + m;
+						subindex = i + j*rwidth + l*tf.bpp
+							   + k*rwidth + m;
 						// check we're within boundaries (l stays in same column)
-						if (subindex < tf.len && i+l*tf.bpp < tf.width*tf.bpp) {
+						if (subindex < tf.len && i+l*tf.bpp < rwidth) {
 							tmpbyte += tf.data[subindex];
 							npixels++;
 						}
@@ -422,10 +421,10 @@ int png_pixelate(struct PNG *png, int condratio)
 				for (int k = 0; k < condratio; k++) {
 					// submatrix width
 					for (int l = 0; l < condratio; l++) {
-						subindex = i + j*tf.width*tf.bpp + l*tf.bpp
-							   + k*tf.width*tf.bpp + m;
+						subindex = i + j*rwidth + l*tf.bpp
+							   + k*rwidth + m;
 						// check we're within boundaries (l stays in same column)
-						if (subindex < tf.len && i+l*tf.bpp < tf.width*tf.bpp) {
+						if (subindex < tf.len && i+l*tf.bpp < rwidth) {
 							tf.data[subindex] = tmpbyte;
 						}
 					}

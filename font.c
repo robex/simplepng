@@ -4,20 +4,18 @@
 #include <stdlib.h>
 #include "png.h"
 #include "font.h"
+#include "transform.h"
 
 int png_draw_text(struct PNG *png, int x, int y, char *str)
 {
 	char    asc;
 	int     index;
 	uint8_t bit = 0;
-	uint64_t rawlen;
-	uint8_t *data = get_unfiltered(png, &rawlen);
-	int bpp;
-	int alpha = png_calc_alpha(png);
-	if (!png_calc_bpp(png, &bpp))
+	struct _png_tform tf;
+	if (!png_get_tform(png, &tf))
 		return 0;
 
-	int width = png->IHDR_chunk.width * bpp;
+	int width = tf.width * tf.bpp;
 
 	for (int i = 0; i < strlen(str); i++) {
 		asc = str[i];
@@ -28,20 +26,20 @@ int png_draw_text(struct PNG *png, int x, int y, char *str)
 			bit = font[index][j];
 			for (int k = 0; k < 8; k++) {
 				if ((bit >> (8-k)) & 1) {
-					for (int l = 0; l < bpp; l++) {
-						int pos = y * width + (x*bpp) + i * 8 * bpp + (12-j) * width + (k*bpp) + l;
-						if (pos >= rawlen)
+					for (int l = 0; l < tf.bpp; l++) {
+						int pos = y * width + (x*tf.bpp) + i * 8 * tf.bpp + (12-j) * width + (k*tf.bpp) + l;
+						if (pos >= tf.len)
 							continue;
-						if (l < bpp - alpha)
-							data[pos] = 0x00;
+						if (l < tf.bpp - tf.alpha)
+							tf.data[pos] = 0x00;
 						else
-							data[pos] = 0xff;
+							tf.data[pos] = 0xff;
 					}
 				}
 			}
 		}
 	}
-	png_write(png, data, rawlen, 0);
-	free(data);
+	png_write(png, tf.data, tf.len, 0);
+	png_tform_free(&tf);
 	return 1;
 }
