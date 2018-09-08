@@ -4,7 +4,7 @@ png.o: png.c png.h filter.o
 	gcc -g -c -o png.o png.c -Wall
 filter.o: filter.c
 	gcc -g -c -o filter.o filter.c -Wall
-transform.o: transform.c
+transform.o: transform.c transform.h
 	gcc -g -c -o transform.o transform.c -Wall
 crc.o: crc.c
 	gcc -g -c -o crc.o crc.c -Wall -lz

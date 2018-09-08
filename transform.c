@@ -3,9 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "png.h"
-
-#define MAX(x, y) (((x) > (y)) ? (x) : (y))
-#define MIN(x, y) (((x) < (y)) ? (x) : (y))
+#include "transform.h"
 
 uint8_t *get_unfiltered(struct PNG *png, uint64_t *raw_len)
 {
@@ -20,59 +18,73 @@ uint8_t *get_unfiltered(struct PNG *png, uint64_t *raw_len)
 	return raw_data;
 }
 
+int png_get_tform(struct PNG *png, struct _png_tform *tform)
+{
+	if (!png_calc_bpp(png, &tform->bpp))
+		return 0;
+	tform->alpha = png_calc_alpha(png);
+	tform->width = png->IHDR_chunk.width;
+	tform->height = png->IHDR_chunk.height;
+	tform->bit_depth = png->IHDR_chunk.bit_depth;
+	tform->color_type = png->IHDR_chunk.color_type;
+	tform->data = get_unfiltered(png, &tform->len);
+	if (tform->data == NULL)
+		return 0;
+	return 1;
+}
+
+void png_tform_free(struct _png_tform *tform)
+{
+	free(tform->data);
+}
 
 int png_change_bit_depth(struct PNG *png, int bit_depth)
 {
 	// dummy png to get bpp of new png
 	struct PNG dummy;
-	uint64_t raw_len;
 	uint64_t new_len;
-	uint8_t *raw_data;
 	uint8_t *new_data;
-	int bpp, newbpp;
-	if (!png_calc_bpp(png, &bpp))
+	int newbpp;
+
+	struct _png_tform tf;
+	if (!png_get_tform(png, &tf))
 		return 0;
-	raw_data = get_unfiltered(png, &raw_len);
+
 	dummy.IHDR_chunk.bit_depth = bit_depth;
-	dummy.IHDR_chunk.color_type = png->IHDR_chunk.color_type;
+	dummy.IHDR_chunk.color_type = tf.color_type;
 	if (!png_calc_bpp(&dummy, &newbpp))
 		return 0;
-	new_len = png->IHDR_chunk.height * png->IHDR_chunk.width * newbpp;
+	new_len = tf.height * tf.width * newbpp;
 	new_data = calloc(new_len, 1);
 	// bytes per sample
-	int bps = png->IHDR_chunk.bit_depth >> 3;
+	int bps = tf.bit_depth >> 3;
 	int newbps = bit_depth >> 3;
 	int cnt = 0;
 
-	for (int i = 0; i < raw_len; i += bps) {
-		memcpy(new_data + cnt, raw_data + i,
+	for (int i = 0; i < tf.len; i += bps) {
+		memcpy(new_data + cnt, tf.data + i,
 		       newbps > bps ? bps : newbps);
 		cnt += newbps;
 	}
 	png->IHDR_chunk.bit_depth = bit_depth;
 	png_write(png, new_data, new_len, 0);
 	free(new_data);
-	free(raw_data);
+	png_tform_free(&tf);
 	return 1;
 }
 
 /* Invert color (doesn't invert alpha) */
 int png_invert(struct PNG *png)
 {
-	uint64_t raw_len;
-	uint8_t *raw_data;
-	int bpp;
-	int alpha = png_calc_alpha(png);
-	if (!png_calc_bpp(png, &bpp))
+	struct _png_tform tf;
+	if (!png_get_tform(png, &tf))
 		return 0;
-
-	raw_data = get_unfiltered(png, &raw_len);
-	for (int i = 0; i < raw_len; i+=bpp) {
-		for (int j = 0; j < bpp-alpha; j++)
-			raw_data[i+j] = 0xFF - raw_data[i+j];
+	for (int i = 0; i < tf.len; i+=tf.bpp) {
+		for (int j = 0; j < tf.bpp - tf.alpha; j++)
+			tf.data[i+j] = 0xFF - tf.data[i+j];
 	}
-	png_write(png, raw_data, raw_len, 0);
-	free(raw_data);
+	png_write(png, tf.data, tf.len, 0);
+	png_tform_free(&tf);
 	return 1;
 }
 
@@ -85,35 +97,23 @@ int png_invert(struct PNG *png)
 struct PNG png_append_horiz(struct PNG *p1, struct PNG *p2, int *ret)
 {
 	struct PNG res;
-	uint64_t raw_len_1;
-	uint8_t *raw_data_1;
-	int bpp1;
-	if (!png_calc_bpp(p1, &bpp1)) {
+	struct _png_tform t1;
+	struct _png_tform t2;
+	if (!png_get_tform(p1, &t1) || !png_get_tform(p2, &t2)) {
 		*ret = 0;
 		return res;
 	}
 
-	uint64_t raw_len_2;
-	uint8_t *raw_data_2;
-
-	raw_data_1 = get_unfiltered(p1, &raw_len_1);
-	raw_data_2 = get_unfiltered(p2, &raw_len_2);
-
-	int width1 = p1->IHDR_chunk.width;
-	int width2 = p2->IHDR_chunk.width;
-	int height1 = p1->IHDR_chunk.height;
-	int height2 = p2->IHDR_chunk.height;
-
-	int newwidth = width1 + width2;
-	int newheight = MAX(height1, height2);
-	uint64_t new_len = (newwidth * bpp1) * newheight;
+	int newwidth = t1.width + t2.width;
+	int newheight = MAX(t1.height, t2.height);
+	uint64_t new_len = (newwidth * t1.bpp) * newheight;
 	uint8_t *new_data = calloc(1, new_len);
 
 	/*printf("newheight: %d\n", newheight);*/
 	/*printf("newwidth: %d\n", newwidth);*/
 
-	res = png_init(newwidth, newheight, p1->IHDR_chunk.bit_depth,
-		       p1->IHDR_chunk.color_type, 0);
+	res = png_init(newwidth, newheight, t1.bit_depth,
+		       t1.color_type, 0);
 
 	/*
 	 *  new_data:
@@ -129,25 +129,25 @@ struct PNG png_append_horiz(struct PNG *p1, struct PNG *p2, int *ret)
 	 */
 
 	for (int i = 0; i < newheight; i++) {
-		int pos1 = i * (newwidth * bpp1);
-		int pos2 = pos1 + width1 * bpp1;
-		int png1off = i * (width1 * bpp1);
-		int png2off = i * (width2 * bpp1);
+		int pos1 = i * (newwidth * t1.bpp);
+		int pos2 = pos1 + t1.width * t1.bpp;
+		int png1off = i * (t1.width * t1.bpp);
+		int png2off = i * (t2.width * t1.bpp);
 		// dont access out of bounds, image will be transparent
 		// since the memory is allocated with calloc
-		if (i < height1) {
-			memcpy(new_data + pos1, raw_data_1 + png1off,
-			       width1 * bpp1);
+		if (i < t1.height) {
+			memcpy(new_data + pos1, t1.data + png1off,
+			       t1.width * t1.bpp);
 		}
-		if (i < height2) {
-			memcpy(new_data + pos2, raw_data_2 + png2off,
-			       width2 * bpp1);
+		if (i < t2.height) {
+			memcpy(new_data + pos2, t2.data + png2off,
+			       t2.width * t1.bpp);
 		}
 	}
 	png_write(&res, new_data, new_len, 0);
 
-	free(raw_data_1);
-	free(raw_data_2);
+	png_tform_free(&t1);
+	png_tform_free(&t2);
 	free(new_data);
 	*ret = 1;
 	return res;
@@ -162,55 +162,38 @@ struct PNG png_append_horiz(struct PNG *p1, struct PNG *p2, int *ret)
 struct PNG png_append_vert(struct PNG *p1, struct PNG *p2, int *ret)
 {
 	struct PNG res;
-	int bpp1;
-	if (!png_calc_bpp(p1, &bpp1)) {
+	struct _png_tform t1;
+	struct _png_tform t2;
+	if (!png_get_tform(p1, &t1) || !png_get_tform(p2, &t2)) {
 		*ret = 0;
 		return res;
 	}
 
-	uint64_t raw_len_1;
-	uint8_t *raw_data_1;
-	uint64_t raw_len_2;
-	uint8_t *raw_data_2;
-
-	raw_data_1 = get_unfiltered(p1, &raw_len_1);
-	raw_data_2 = get_unfiltered(p2, &raw_len_2);
-	if (raw_data_1 == NULL || raw_data_2 == NULL) {
-		*ret = 0;
-		return res;
-	}
-
-	int width1 = p1->IHDR_chunk.width;
-	int width2 = p2->IHDR_chunk.width;
-	int height1 = p1->IHDR_chunk.height;
-	int height2 = p2->IHDR_chunk.height;
-
-	int newwidth = MAX(width1, width2);
-	int newheight = height1 + height2;
-	uint64_t new_len = (newwidth * bpp1) * newheight;
+	int newwidth = MAX(t1.width, t2.width);
+	int newheight = t1.height + t2.height;
+	uint64_t new_len = (newwidth * t1.bpp) * newheight;
 	uint8_t *new_data = calloc(1, new_len);
 
 	/*printf("newheight: %d\n", newheight);*/
 	/*printf("newwidth: %d\n", newwidth);*/
 
-	res = png_init(newwidth, newheight, p1->IHDR_chunk.bit_depth,
-		       p1->IHDR_chunk.color_type, 0);
+	res = png_init(newwidth, newheight, t1.bit_depth, t1.color_type, 0);
 
-	for (int i = 0; i < height1; i++) {
-		int bigrow = i * (newwidth * bpp1);
-		int row = i * (width1 * bpp1);
-		memcpy(new_data + bigrow, raw_data_1 + row, width1 * bpp1);
+	for (int i = 0; i < t1.height; i++) {
+		int bigrow = i * (newwidth * t1.bpp);
+		int row = i * (t1.width * t1.bpp);
+		memcpy(new_data + bigrow, t1.data + row, t1.width * t1.bpp);
 	}
-	for (int i = 0; i < height2; i++) {
-		int bigrow = (i + height1) * (newwidth * bpp1);
-		int row = i * (width2 * bpp1);
-		memcpy(new_data + bigrow, raw_data_2 + row, width2 * bpp1);
+	for (int i = 0; i < t2.height; i++) {
+		int bigrow = (i + t1.height) * (newwidth * t1.bpp);
+		int row = i * (t2.width * t1.bpp);
+		memcpy(new_data + bigrow, t2.data + row, t2.width * t1.bpp);
 	}
 
 	png_write(&res, new_data, new_len, 0);
 
-	free(raw_data_1);
-	free(raw_data_2);
+	png_tform_free(&t1);
+	png_tform_free(&t2);
 	free(new_data);
 	*ret = 1;
 	return res;
@@ -219,130 +202,112 @@ struct PNG png_append_vert(struct PNG *p1, struct PNG *p2, int *ret)
 /* Replace src_color (must be the right size) with dst_color */
 int png_replace(struct PNG *png, uint8_t *src_color, uint8_t *dst_color)
 {
-	uint64_t raw_len;
-	uint8_t *raw_data;
-	int bpp;
-	int alpha = png_calc_alpha(png);
-	if (!png_calc_bpp(png, &bpp))
+	struct _png_tform tf;
+	if (!png_get_tform(png, &tf))
 		return 0;
-
-	raw_data = get_unfiltered(png, &raw_len);
-	for (int i = 0; i < raw_len; i+=bpp) {
-		if (!memcmp(raw_data+i, src_color, bpp-alpha)) {
-			memcpy(raw_data+i, dst_color, bpp-alpha);
+	for (int i = 0; i < tf.len; i += tf.bpp) {
+		if (!memcmp(tf.data + i, src_color, tf.bpp - tf.alpha)) {
+			memcpy(tf.data + i, dst_color, tf.bpp - tf.alpha);
 		}
 	}
-	png_write(png, raw_data, raw_len, 0);
-	free(raw_data);
+	png_write(png, tf.data, tf.len, 0);
+	png_tform_free(&tf);
 	return 1;
 }
 
 int png_flip_horizontal(struct PNG *png)
 {
-	uint64_t raw_len;
-	uint8_t *raw_data = get_unfiltered(png, &raw_len);
-	int width = png->IHDR_chunk.width;
-	int height = png->IHDR_chunk.height;
-	int bpp;
-	if (!png_calc_bpp(png, &bpp))
+	struct _png_tform tf;
+	if (!png_get_tform(png, &tf))
 		return 0;
-	uint8_t tmp[bpp];
+	uint8_t tmp[tf.bpp];
 
 	// swap columns (by swapping each row individually)
-	for (int j = 0; j < height; j++) {
-		for (int i = 0; i < width/2; i++) {
+	for (int j = 0; j < tf.height; j++) {
+		for (int i = 0; i < tf.width/2; i++) {
 			// left position, increases until the midpoint
-			int beg = i * bpp + width * bpp * j;
+			int beg = i * tf.bpp + tf.width * tf.bpp * j;
 			// right position, decreases
-			int end = (width - 1 - i) * bpp + width * bpp * j;
+			int end = (tf.width - 1 - i) * tf.bpp + tf.width *
+				  tf.bpp * j;
 			
-			memcpy(tmp, raw_data + beg, bpp);
-			memcpy(raw_data + beg, raw_data + end, bpp);
-			memcpy(raw_data + end, tmp, bpp);
+			memcpy(tmp, tf.data + beg, tf.bpp);
+			memcpy(tf.data + beg, tf.data + end, tf.bpp);
+			memcpy(tf.data + end, tmp, tf.bpp);
 		}
 	}
 
-	png_write(png, raw_data, raw_len, 0);
-	free(raw_data);
+	png_write(png, tf.data, tf.len, 0);
+	png_tform_free(&tf);
 	return 1;
 }
 
 int png_flip_vertical(struct PNG *png)
 {
-	uint64_t raw_len;
-	uint8_t *raw_data = get_unfiltered(png, &raw_len);
-	int width = png->IHDR_chunk.width;
-	int height = png->IHDR_chunk.height;
-	int bpp;
-	if (!png_calc_bpp(png, &bpp))
+	struct _png_tform tf;
+	if (!png_get_tform(png, &tf))
 		return 0;
-	uint8_t tmp[width*bpp];
+	uint8_t tmp[tf.width*tf.bpp];
 
-	for (int i = 0; i < height/2; i++) {
-		int beg = i * width * bpp;
-		int end = (height - 1 - i) * width * bpp;
-		memcpy(tmp, raw_data + beg, width * bpp);
-		memcpy(raw_data + beg, raw_data + end, width * bpp);
-		memcpy(raw_data + end, tmp, width * bpp);
+	for (int i = 0; i < tf.height/2; i++) {
+		int beg = i * tf.width * tf.bpp;
+		int end = (tf.height - 1 - i) * tf.width * tf.bpp;
+		memcpy(tmp, tf.data + beg, tf.width * tf.bpp);
+		memcpy(tf.data + beg, tf.data + end, tf.width * tf.bpp);
+		memcpy(tf.data + end, tmp, tf.width * tf.bpp);
 	}
 
-	png_write(png, raw_data, raw_len, 0);
-	free(raw_data);
+	png_write(png, tf.data, tf.len, 0);
+	png_tform_free(&tf);
 	return 1;
 }
 
 /* Rotate png 90 degrees clockwise */
 int png_rotate(struct PNG *png)
 {
-	uint64_t raw_len;
-	uint8_t *raw_data = get_unfiltered(png, &raw_len);
-	int width = png->IHDR_chunk.width;
-	int height = png->IHDR_chunk.height;
-	uint8_t *transp = malloc(raw_len);
-	int bpp;
-	if (!png_calc_bpp(png, &bpp))
+	struct _png_tform tf;
+	if (!png_get_tform(png, &tf))
 		return 0;
 
+	uint8_t *transp = malloc(tf.len);
+
 	// reverse rows and transpose matrix
-	for (int i = 0; i < height; i++) {
-		memcpy(transp+i*width*bpp, raw_data+(height-1-i)*width*bpp,
-		       width*bpp);
+	for (int i = 0; i < tf.height; i++) {
+		memcpy(transp+i*tf.width*tf.bpp, tf.data+(tf.height-1-i)*tf.width*tf.bpp,
+		       tf.width*tf.bpp);
 	}
 
-	for (int j = 0; j < height; j++) {
-		for (int i = 0; i < width; i++) {
-			int dst = (i*height+j)*bpp;
-			int src = (j*width+i)*bpp;
-			memcpy(raw_data+dst, transp+src, bpp);
+	for (int j = 0; j < tf.height; j++) {
+		for (int i = 0; i < tf.width; i++) {
+			int dst = (i*tf.height+j)*tf.bpp;
+			int src = (j*tf.width+i)*tf.bpp;
+			memcpy(tf.data+dst, transp+src, tf.bpp);
 		}
 	}
 
-	png->IHDR_chunk.width = height;
-	png->IHDR_chunk.height = width;
+	png->IHDR_chunk.width = tf.height;
+	png->IHDR_chunk.height = tf.width;
+	png_write(png, tf.data, tf.len, 0);
+	png_tform_free(&tf);
 	free(transp);
-	png_write(png, raw_data, raw_len, 0);
-	free(raw_data);
 	return 1;
 }
 
 /* Swap each pixel with its right neighbour */
 int png_swap(struct PNG *png)
 {
-	uint64_t raw_len;
-	uint8_t *raw_data;
-	int bpp;
-	if (!png_calc_bpp(png, &bpp))
+	struct _png_tform tf;
+	if (!png_get_tform(png, &tf))
 		return 0;
+	uint8_t tmp[tf.bpp];
 
-	raw_data = get_unfiltered(png, &raw_len);
-	uint8_t tmp[bpp];
-	for (int i = 0; i < raw_len-bpp; i+=bpp) {
-		memcpy(tmp, raw_data+i, bpp);
-		memcpy(raw_data+i, raw_data+i+bpp, bpp);
-		memcpy(raw_data+i+bpp, tmp, bpp);
+	for (int i = 0; i < tf.len - tf.bpp; i += tf.bpp) {
+		memcpy(tmp, tf.data + i, tf.bpp);
+		memcpy(tf.data + i, tf.data + i + tf.bpp, tf.bpp);
+		memcpy(tf.data + i + tf.bpp, tmp, tf.bpp);
 	}
-	png_write(png, raw_data, raw_len, 0);
-	free(raw_data);
+	png_write(png, tf.data, tf.len, 0);
+	png_tform_free(&tf);
 	return 1;
 }
 
@@ -355,20 +320,15 @@ int int_ceil_div(int dividend, int divisor) {
  * all pixels in the square formed by condratio ^ 2 */
 int png_condense(struct PNG *png, int condratio)
 {
-	uint64_t raw_len;
-	uint8_t *raw_data = get_unfiltered(png, &raw_len);
-	int width = png->IHDR_chunk.width;
-	int height = png->IHDR_chunk.height;
-	int bpp;
-
-	if (!png_calc_bpp(png, &bpp))
+	struct _png_tform tf;
+	if (!png_get_tform(png, &tf))
 		return 0;
 
-	if (condratio <= 0 || condratio > width || condratio > height)
+	if (condratio <= 0 || condratio > tf.width || condratio > tf.height)
 		return 0;
-	int newwidth = int_ceil_div(width, condratio);
-	int newheight = int_ceil_div(height, condratio);
-	int newlength = newwidth * newheight * bpp;
+	int newwidth = int_ceil_div(tf.width, condratio);
+	int newheight = int_ceil_div(tf.height, condratio);
+	int newlength = newwidth * newheight * tf.bpp;
 
 	uint8_t *cond_data = malloc(newlength);
 
@@ -380,21 +340,21 @@ int png_condense(struct PNG *png, int condratio)
 
 	//TODO: not enough image data when result is 1px
 	
-	// total height, increased in condratio steps
-	for (int j = 0; j < height; j+=condratio) {
-		// total width, increased in condratio steps
-		for (int i = 0; i < width*bpp; i+=condratio*bpp) {
+	// total tf.height, increased in condratio steps
+	for (int j = 0; j < tf.height; j+=condratio) {
+		// total tf.width, increased in condratio steps
+		for (int i = 0; i < tf.width*tf.bpp; i+=condratio*tf.bpp) {
 			// bytes per pixel inside each submatrix
-			for (int m = 0; m < bpp; m++) {
-				// submatrix height
+			for (int m = 0; m < tf.bpp; m++) {
+				// submatrix tf.height
 				for (int k = 0; k < condratio; k++) {
-					// submatrix width
+					// submatrix tf.width
 					for (int l = 0; l < condratio; l++) {
-						subindex = i + j*width*bpp + l*bpp
-							   + k*width*bpp + m;
+						subindex = i + j*tf.width*tf.bpp + l*tf.bpp
+							   + k*tf.width*tf.bpp + m;
 						// check we're within boundaries (l stays in same column)
-						if (subindex < raw_len && i+l*bpp < width*bpp) {
-							tmpbyte += raw_data[subindex];
+						if (subindex < tf.len && i+l*tf.bpp < tf.width*tf.bpp) {
+							tmpbyte += tf.data[subindex];
 							npixels++;
 						}
 					}
@@ -403,7 +363,7 @@ int png_condense(struct PNG *png, int condratio)
 				npixels = 0;
 				/*printf("\ntmpbyte: %d\n", tmpbyte);*/
 				condindex = (i/condratio) +
-				            (j/condratio)*newwidth*bpp + m;
+				            (j/condratio)*newwidth*tf.bpp + m;
 				/*printf("condindex:%d\n", condindex);*/
 				if (condindex < newlength)
 					cond_data[condindex] = (uint8_t)tmpbyte;
@@ -415,7 +375,7 @@ int png_condense(struct PNG *png, int condratio)
 	png->IHDR_chunk.width = newwidth;
 	png->IHDR_chunk.height = newheight;
 
-	free(raw_data);
+	png_tform_free(&tf);
 	png_write(png, cond_data, newlength, 0);
 	free(cond_data);
 	return 1;
@@ -423,16 +383,11 @@ int png_condense(struct PNG *png, int condratio)
 
 int png_pixelate(struct PNG *png, int condratio)
 {
-	uint64_t raw_len;
-	uint8_t *raw_data = get_unfiltered(png, &raw_len);
-	int width = png->IHDR_chunk.width;
-	int height = png->IHDR_chunk.height;
-	int bpp;
-
-	if (!png_calc_bpp(png, &bpp))
+	struct _png_tform tf;
+	if (!png_get_tform(png, &tf))
 		return 0;
 
-	if (condratio <= 0 || condratio > width || condratio > height)
+	if (condratio <= 0 || condratio > tf.width || condratio > tf.height)
 		return 0;
 
 	uint32_t tmpbyte = 0;
@@ -443,20 +398,20 @@ int png_pixelate(struct PNG *png, int condratio)
 	//TODO: not enough image data when result is 1px
 	
 	// total height, increased in condratio steps
-	for (int j = 0; j < height; j+=condratio) {
+	for (int j = 0; j < tf.height; j+=condratio) {
 		// total width, increased in condratio steps
-		for (int i = 0; i < width*bpp; i+=condratio*bpp) {
+		for (int i = 0; i < tf.width*tf.bpp; i+=condratio*tf.bpp) {
 			// bytes per pixel inside each submatrix
-			for (int m = 0; m < bpp; m++) {
+			for (int m = 0; m < tf.bpp; m++) {
 				// submatrix height
 				for (int k = 0; k < condratio; k++) {
 					// submatrix width
 					for (int l = 0; l < condratio; l++) {
-						subindex = i + j*width*bpp + l*bpp
-							   + k*width*bpp + m;
+						subindex = i + j*tf.width*tf.bpp + l*tf.bpp
+							   + k*tf.width*tf.bpp + m;
 						// check we're within boundaries (l stays in same column)
-						if (subindex < raw_len && i+l*bpp < width*bpp) {
-							tmpbyte += raw_data[subindex];
+						if (subindex < tf.len && i+l*tf.bpp < tf.width*tf.bpp) {
+							tmpbyte += tf.data[subindex];
 							npixels++;
 						}
 					}
@@ -467,11 +422,11 @@ int png_pixelate(struct PNG *png, int condratio)
 				for (int k = 0; k < condratio; k++) {
 					// submatrix width
 					for (int l = 0; l < condratio; l++) {
-						subindex = i + j*width*bpp + l*bpp
-							   + k*width*bpp + m;
+						subindex = i + j*tf.width*tf.bpp + l*tf.bpp
+							   + k*tf.width*tf.bpp + m;
 						// check we're within boundaries (l stays in same column)
-						if (subindex < raw_len && i+l*bpp < width*bpp) {
-							raw_data[subindex] = tmpbyte;
+						if (subindex < tf.len && i+l*tf.bpp < tf.width*tf.bpp) {
+							tf.data[subindex] = tmpbyte;
 						}
 					}
 				}
@@ -480,7 +435,7 @@ int png_pixelate(struct PNG *png, int condratio)
 		}
 	}
 
-	png_write(png, raw_data, raw_len, 0);
-	free(raw_data);
+	png_write(png, tf.data, tf.len, 0);
+	png_tform_free(&tf);
 	return 1;
 }
