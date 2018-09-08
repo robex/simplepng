@@ -20,6 +20,42 @@ uint8_t *get_unfiltered(struct PNG *png, uint64_t *raw_len)
 	return raw_data;
 }
 
+
+int png_change_bit_depth(struct PNG *png, int bit_depth)
+{
+	// dummy png to get bpp of new png
+	struct PNG dummy;
+	uint64_t raw_len;
+	uint64_t new_len;
+	uint8_t *raw_data;
+	uint8_t *new_data;
+	int bpp, newbpp;
+	if (!png_calc_bpp(png, &bpp))
+		return 0;
+	raw_data = get_unfiltered(png, &raw_len);
+	dummy.IHDR_chunk.bit_depth = bit_depth;
+	dummy.IHDR_chunk.color_type = png->IHDR_chunk.color_type;
+	if (!png_calc_bpp(&dummy, &newbpp))
+		return 0;
+	new_len = png->IHDR_chunk.height * png->IHDR_chunk.width * newbpp;
+	new_data = calloc(new_len, 1);
+	// bytes per sample
+	int bps = png->IHDR_chunk.bit_depth >> 3;
+	int newbps = bit_depth >> 3;
+	int cnt = 0;
+
+	for (int i = 0; i < raw_len; i += bps) {
+		memcpy(new_data + cnt, raw_data + i,
+		       newbps > bps ? bps : newbps);
+		cnt += newbps;
+	}
+	png->IHDR_chunk.bit_depth = bit_depth;
+	png_write(png, new_data, new_len, 0);
+	free(new_data);
+	free(raw_data);
+	return 1;
+}
+
 /* Invert color (doesn't invert alpha) */
 int png_invert(struct PNG *png)
 {
@@ -317,7 +353,6 @@ int int_ceil_div(int dividend, int divisor) {
 
 /* Condense png by condratio: downscale image by taking the average of
  * all pixels in the square formed by condratio ^ 2 */
-//TODO: make pixelation (set average to all pixels, dont change image size)
 int png_condense(struct PNG *png, int condratio)
 {
 	uint64_t raw_len;

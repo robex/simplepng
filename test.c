@@ -522,6 +522,44 @@ void test_font(char *filename)
 	}
 }
 
+void test_structcopy(char *in, char *out)
+{
+	char string[80];
+	struct PNG src;
+	struct PNG dst;
+	sprintf(string, ">>> "YELLOW("TEST")": struct copy \"%s\" to \"%s\"", in, out);
+	if (!png_open(&src, in)) {
+		print_aligned(string, RED("ERROR"), 70);
+		printf("png_open: error opening png %s\n", in);
+		return;
+	}
+	png_copy(&src, &dst);
+	if (!png_dump(&dst, out))
+		print_aligned(string, RED("ERROR"), 70);
+	else
+		print_aligned(string, GREEN("OK"), 70);
+
+	png_close(&src);
+	png_close(&dst);
+}
+
+void test_depth(char *filename, int bit_depth)
+{
+	char string[80];
+	sprintf(string, ">>> "YELLOW("TEST")": change bit depth of png %s", filename);
+	struct PNG png;
+	if (!png_open(&png, filename)) {
+		printf("png_open: error opening png %s\n", filename);
+		return;
+	}
+	if (!png_change_bit_depth(&png, bit_depth))
+		print_aligned(string, RED("ERROR"), 70);
+	else
+		print_aligned(string, GREEN("OK"), 70);
+	png_dump(&png, "samples/depth_test");
+	png_close(&png);
+}
+
 int main()
 {
 	test_8_bit_grey();
@@ -573,6 +611,9 @@ int main()
 	test_pixelate("samples/ruben.png", 8);
 	test_swap("samples/ruben.png");
 	test_append_horiz("samples/rms16alpha.png", "samples/rms16alpha.png");
+	test_structcopy("samples/grad.png", "samples/struct_copy_test");
+	test_depth("samples/rms16alpha.png", 8);
+	test_depth("samples/rms8alpha.png", 16);
 	/*test_append_vert("samples/grad.png", "samples/ruben.png");*/
 	/*test_append_vert("samples/ruben.png", "samples/ruben.png");*/
 	test_append_vert("samples/rms16alpha.png", "samples/rms16alpha.png");

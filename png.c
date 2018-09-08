@@ -299,6 +299,40 @@ int png_dump(struct PNG *png, char *filename)
 	return 1;
 }
 
+/* Mirror structure src into dst (allocates all necessary memory!) */
+void png_copy(struct PNG *src, struct PNG *dst)
+{
+	memcpy(dst->IHDR_chunk.type, src->IHDR_chunk.type, 4);
+	dst->IHDR_chunk.length      = src->IHDR_chunk.length;
+	dst->IHDR_chunk.width       = src->IHDR_chunk.width;
+	dst->IHDR_chunk.height      = src->IHDR_chunk.height;
+	dst->IHDR_chunk.bit_depth   = src->IHDR_chunk.bit_depth;
+	dst->IHDR_chunk.color_type  = src->IHDR_chunk.color_type;
+	dst->IHDR_chunk.compression = src->IHDR_chunk.compression;
+	dst->IHDR_chunk.interlace   = src->IHDR_chunk.interlace;
+	dst->IHDR_chunk.crc         = src->IHDR_chunk.crc;
+
+	if (dst->IHDR_chunk.color_type == PNG_PLTE) {
+		dst->PLTE.length = src->PLTE.length;
+		dst->PLTE.data = malloc(src->PLTE.length);
+		memcpy(dst->PLTE.type, src->PLTE.type, 4);
+		memcpy(dst->PLTE.data, src->PLTE.data, src->PLTE.length);
+		dst->PLTE.crc = src->PLTE.crc;
+	}
+
+	dst->nidat = src->nidat;
+	dst->IDAT = malloc(sizeof(struct chunk) * src->nidat);
+	for (int i = 0; i < src->nidat; i++) {
+		dst->IDAT[i].length = src->IDAT[i].length;
+		memcpy(dst->IDAT[i].type, src->IDAT[i].type, 4);
+		dst->IDAT[i].data = malloc(src->IDAT[i].length);
+		memcpy(dst->IDAT[i].data, src->IDAT[i].data,
+		       src->IDAT[i].length);
+		dst->IDAT[i].crc = src->IDAT[i].crc;
+	}
+	memcpy(dst->IEND, src->IEND, IEND_SIZE);
+}
+
 /* Returns raw (filtered) data and its length in rawlen */
 uint8_t *png_get_raw_data(struct PNG *png, uint64_t *rawlen)
 {
@@ -330,7 +364,6 @@ void png_close(struct PNG *png)
 
 void print_png_raw(struct PNG *png)
 {
-
 	printf("#### HEADER ####\n");
 	for (int i = 0; i < HEADER_SIZE; i++) {
 		printf("%02x ", png->header[i] & 0xFF);

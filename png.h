@@ -7,7 +7,11 @@
 #define IHDR_SIZE_NO_CRC 17
 #define IEND_SIZE 12
 
-#define PNG_PLTE 3
+#define PNG_GREY  0
+#define PNG_RGB   2
+#define PNG_PLTE  3
+#define PNG_GREYA 4
+#define PNG_RGBA  6
 
 uint8_t head[HEADER_SIZE];
 uint8_t iend[IEND_SIZE];
@@ -77,6 +81,8 @@ void print_png_raw(struct PNG *png);
 /* Write png to disk, to file filename. Returns 1 if succesful,
  * 0 otherwise. */
 int png_dump(struct PNG *png, char *filename);
+/* Mirror structure src into dst (allocates all necessary memory!) */
+void png_copy(struct PNG *src, struct PNG *dst);
 /* Clean png structures and free memory */
 void png_close(struct PNG *png);
 
@@ -92,6 +98,7 @@ int remove_filter(struct PNG *png, uint8_t *filtered_data, uint64_t *rawlen,
 		  uint8_t **raw_data);
 
 
+int png_change_bit_depth(struct PNG *png, int bit_depth);
 /* Invert color (doesn't invert alpha) */
 int png_invert(struct PNG *png);
 /* Swap each pixel with its right neighbour */
