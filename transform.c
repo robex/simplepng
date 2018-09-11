@@ -38,10 +38,137 @@ void png_tform_free(struct _png_tform *tform)
 	free(tform->data);
 }
 
+/* RGB(A) to GREY(A) */
+void png_rgb_to_grey(struct _png_tform tf, uint64_t new_len,
+		     uint8_t *new_data, int newbpp, int newalpha)
+{
+	int cnt = 0;
+	uint32_t avg = 0;
+	int bps = tf.bit_depth >> 3;
+	for (int i = 0; i < tf.len; i += tf.bpp) {
+		// get avg of all rgb pixels as grey value
+		for (int j = 0; j < tf.bpp - tf.alpha; j+=bps)
+			// TODO: GET PROPER AVERAGE (treat as 16-bit)
+			for (int k = 0; k < bps; k++)
+				avg += (uint32_t)tf.data[i + j + k] / bps;
+		avg /= (tf.bpp - tf.alpha) / bps;
+		// set all samples as avg (in case bit_depth > 8)
+		for (int j = 0; j < newbpp - newalpha; j++)
+			new_data[cnt++] = (uint8_t)avg;
+		if (newalpha > 0) {
+			if (tf.alpha > 0) {
+				memcpy(new_data + cnt,
+				       tf.data + i + tf.bpp - tf.alpha,
+				       newalpha);
+			} else {
+				memset(new_data + cnt, 0xff, newalpha);
+			}
+			cnt += newalpha;
+		}
+		avg = 0;
+	}
+}
+
+/* GREY(A) to RGB(A) */
+void png_grey_to_rgb(struct _png_tform tf, uint64_t new_len,
+		     uint8_t *new_data, int newbpp, int newalpha)
+{
+	int cnt = 0;
+	int bps = tf.bit_depth >> 3;
+	for (int i = 0; i < tf.len; i += tf.bpp) {
+		for (int j = 0; j < newbpp - newalpha; j++) {
+			memcpy(new_data + cnt, tf.data + i, bps);
+			cnt += bps;
+		}
+	if (newalpha > 0) {
+			if (tf.alpha > 0) {
+				memcpy(new_data + cnt,
+				       tf.data + i + tf.bpp - tf.alpha,
+				       newalpha);
+			} else {
+				memset(new_data + cnt, 0xff, newalpha);
+			}
+			cnt += newalpha;
+		}
+	}
+}
+
+int png_plte_to_rgb(struct PNG *png)
+{
+	uint8_t *new_data;
+	uint64_t new_len;
+	struct _png_tform tf;
+
+	if (!png_get_tform(png, &tf))
+		return 0;
+
+	new_len = tf.len * 3;
+	new_data = malloc(new_len);
+	for (int i = 0; i < tf.len; i++) {
+		memcpy(new_data + i*3, png->PLTE.data + tf.data[i] * 3, 3);
+	}
+	png->IHDR_chunk.color_type = PNG_RGB;
+	png->IHDR_chunk.bit_depth = 8;
+	png_write(png, new_data, new_len, 0);
+	free(png->PLTE.data);
+	free(new_data);
+	png_tform_free(&tf);
+	return 1;
+}
+
+/* Change color type of the png to color_type (see png.h #defines) */
+int png_change_color_type(struct PNG *png, int color_type)
+{
+	int newbpp, newalpha;
+	uint8_t *new_data;
+	uint64_t new_len;
+	struct _png_tform tf;
+
+	// special case: convert from palette first
+	if (png->IHDR_chunk.color_type == PNG_PLTE) {
+		if (!png_plte_to_rgb(png))
+			return 0;
+	}
+	// set alpha according to final color
+	if (png->IHDR_chunk.color_type == color_type + 4) {
+		png_remove_alpha(png);
+	} else if (png->IHDR_chunk.color_type == color_type - 4) {
+		png_add_alpha(png, 0xff);
+	}
+
+	// nothing to do
+	if (color_type == png->IHDR_chunk.color_type)
+		return 1;
+	if (!png_get_tform(png, &tf))
+		return 0;
+
+	png->IHDR_chunk.color_type = color_type;
+	if (!png_calc_bpp(png, &newbpp))
+		return 0;
+	newalpha = png_calc_alpha(png);
+	new_len = tf.height * tf.width * newbpp;
+	new_data = malloc(new_len);
+
+	switch (color_type) {
+	case PNG_GREY:
+	case PNG_GREYA:
+		png_rgb_to_grey(tf, new_len, new_data, newbpp, newalpha);
+		break;
+	case PNG_RGB:
+	case PNG_RGBA:
+		png_grey_to_rgb(tf, new_len, new_data, newbpp, newalpha);
+		break;
+	}
+
+	png_write(png, new_data, new_len, 0);
+	free(new_data);
+	png_tform_free(&tf);
+	return 1;
+}
+
+/* Change bit depth to bit_depth, valid values are 8 and 16. */
 int png_change_bit_depth(struct PNG *png, int bit_depth)
 {
-	// dummy png to get bpp of new png
-	struct PNG dummy;
 	uint64_t new_len;
 	uint8_t *new_data;
 	int newbpp;
@@ -50,9 +177,8 @@ int png_change_bit_depth(struct PNG *png, int bit_depth)
 	if (!png_get_tform(png, &tf))
 		return 0;
 
-	dummy.IHDR_chunk.bit_depth = bit_depth;
-	dummy.IHDR_chunk.color_type = tf.color_type;
-	if (!png_calc_bpp(&dummy, &newbpp))
+	png->IHDR_chunk.bit_depth = bit_depth;
+	if (!png_calc_bpp(png, &newbpp))
 		return 0;
 	new_len = tf.height * tf.width * newbpp;
 	new_data = calloc(new_len, 1);
@@ -67,6 +193,67 @@ int png_change_bit_depth(struct PNG *png, int bit_depth)
 		cnt += newbps;
 	}
 	png->IHDR_chunk.bit_depth = bit_depth;
+	png_write(png, new_data, new_len, 0);
+	free(new_data);
+	png_tform_free(&tf);
+	return 1;
+}
+
+/* Delete alpha channel from png. */
+int png_remove_alpha(struct PNG *png)
+{
+	uint64_t new_len;
+	uint8_t *new_data;
+	int newbpp;
+
+	struct _png_tform tf;
+	if (!png_get_tform(png, &tf))
+		return 0;
+	if (tf.alpha == 0)
+		return 0;
+
+	newbpp = tf.bpp - tf.alpha;
+	new_len = tf.height * tf.width * newbpp;
+	new_data = malloc(new_len);
+	int cnt = 0;
+	for (int i = 0; i < tf.len; i += tf.bpp) {
+		memcpy(new_data + cnt, tf.data + i, newbpp);
+		cnt += newbpp;
+	}
+
+	png->IHDR_chunk.color_type -= 4;
+	png_write(png, new_data, new_len, 0);
+	free(new_data);
+	png_tform_free(&tf);
+	return 1;
+}
+
+/* Add an alpha channel with value alpha (0: transparent, ff: opaque) */
+int png_add_alpha(struct PNG *png, int alpha)
+{
+	uint64_t new_len;
+	uint8_t *new_data;
+	int newbpp;
+
+	struct _png_tform tf;
+	if (!png_get_tform(png, &tf))
+		return 0;
+	if (tf.alpha != 0)
+		return 0;
+
+	int bps = tf.bit_depth >> 3;
+	newbpp = tf.bpp + bps;
+	new_len = tf.height * tf.width * newbpp;
+	new_data = malloc(new_len);
+	int cnt = 0;
+	for (int i = 0; i < tf.len; i += tf.bpp) {
+		memcpy(new_data + cnt, tf.data + i, tf.bpp);
+		cnt += tf.bpp;
+		memset(new_data + cnt, alpha, bps);
+		cnt += bps;
+	}
+
+	png->IHDR_chunk.color_type += 4;
 	png_write(png, new_data, new_len, 0);
 	free(new_data);
 	png_tform_free(&tf);

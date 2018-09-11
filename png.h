@@ -98,7 +98,14 @@ int remove_filter(struct PNG *png, uint8_t *filtered_data, uint64_t *rawlen,
 		  uint8_t **raw_data);
 
 
+/* Change color type of the png to color_type (see png.h #defines) */
+int png_change_color_type(struct PNG *png, int color_type);
+/* Change bit depth to bit_depth, valid values are 8 and 16. */
 int png_change_bit_depth(struct PNG *png, int bit_depth);
+/* Delete alpha channel from png. */
+int png_remove_alpha(struct PNG *png);
+/* Add an alpha channel with value alpha (0: transparent, ff: opaque) */
+int png_add_alpha(struct PNG *png, int alpha);
 /* Invert color (doesn't invert alpha) */
 int png_invert(struct PNG *png);
 /* Swap each pixel with its right neighbour */

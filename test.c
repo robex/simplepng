@@ -560,6 +560,57 @@ void test_depth(char *filename, int bit_depth)
 	png_close(&png);
 }
 
+void test_color(char *filename, int color_type)
+{
+	char string[80];
+	sprintf(string, ">>> "YELLOW("TEST")": change color type of png %s", filename);
+	struct PNG png;
+	if (!png_open(&png, filename)) {
+		printf("png_open: error opening png %s\n", filename);
+		return;
+	}
+	if (!png_change_color_type(&png, color_type))
+		print_aligned(string, RED("ERROR"), 70);
+	else
+		print_aligned(string, GREEN("OK"), 70);
+	png_dump(&png, "samples/color_test");
+	png_close(&png);
+}
+
+void test_delete_alpha(char *filename)
+{
+	char string[80];
+	sprintf(string, ">>> "YELLOW("TEST")": delete alpha channel from %s", filename);
+	struct PNG png;
+	if (!png_open(&png, filename)) {
+		printf("png_open: error opening png %s\n", filename);
+		return;
+	}
+	if (!png_remove_alpha(&png))
+		print_aligned(string, RED("ERROR"), 70);
+	else
+		print_aligned(string, GREEN("OK"), 70);
+	png_dump(&png, "samples/alpha_del_test");
+	png_close(&png);
+}
+
+void test_add_alpha(char *filename)
+{
+	char string[80];
+	sprintf(string, ">>> "YELLOW("TEST")": add alpha channel to %s", filename);
+	struct PNG png;
+	if (!png_open(&png, filename)) {
+		printf("png_open: error opening png %s\n", filename);
+		return;
+	}
+	if (!png_add_alpha(&png, 0xff))
+		print_aligned(string, RED("ERROR"), 70);
+	else
+		print_aligned(string, GREEN("OK"), 70);
+	png_dump(&png, "samples/alpha_add_test");
+	png_close(&png);
+}
+
 int main()
 {
 	test_8_bit_grey();
@@ -614,6 +665,13 @@ int main()
 	test_structcopy("samples/grad.png", "samples/struct_copy_test");
 	test_depth("samples/rms16alpha.png", 8);
 	test_depth("samples/rms8alpha.png", 16);
+	test_color("samples/ruben.png", PNG_RGBA);
+	test_delete_alpha("samples/rms16alpha.png");
+	test_delete_alpha("samples/hidden.png");
+	test_add_alpha("samples/ruben.png");
+	/*test_color("samples/rms16alpha.png", PNG_GREYA);*/
+	/*test_color("samples/ruben_grey.png", PNG_RGBA);*/
+	test_color("samples/palette_2.png", PNG_RGBA);
 	/*test_append_vert("samples/grad.png", "samples/ruben.png");*/
 	/*test_append_vert("samples/ruben.png", "samples/ruben.png");*/
 	test_append_vert("samples/rms16alpha.png", "samples/rms16alpha.png");
