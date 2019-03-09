@@ -120,6 +120,7 @@ int png_flip_vertical(struct PNG *png);
  * all pixels in the square formed by condratio ^ 2 */
 int png_condense(struct PNG *png, int condratio);
 int png_pixelate(struct PNG *png, int condratio);
+int png_rotate_arb(struct PNG *png, float angle);
 /* Append p2 to the right of p1 and return the result in a new PNG
  * ret is the return value (must be allocated)
  * Restrictions (hopefully to change soon):

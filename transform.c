@@ -2,8 +2,11 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include "png.h"
 #include "transform.h"
+
+#define PI 3.14159265359
 
 uint8_t *get_unfiltered(struct PNG *png, uint64_t *raw_len)
 {
@@ -623,5 +626,49 @@ int png_pixelate(struct PNG *png, int condratio)
 
 	png_write(png, tf.data, tf.len, 0);
 	png_tform_free(&tf);
+	return 1;
+}
+
+int png_rotate_arb(struct PNG *png, float angle)
+{
+	angle = angle*PI/180.0f;
+	struct _png_tform tf;
+	if (!png_get_tform(png, &tf))
+		return 0;
+
+	/*int newwidth = ceil(sqrt(tf.width*tf.width + tf.height*tf.height));*/
+	/*int newheight = newwidth;*/
+	/*int newlength = newwidth * newheight * tf.bpp;*/
+
+	/*uint8_t *rot_data = calloc(1, newlength);*/
+	uint8_t *rot_data = calloc(1, tf.len);
+	float cosa = cos(angle);
+	float sina = sin(angle);
+	int xdif, ydif;
+
+	/*printf("newwidth: %d, newheight: %d\n", newwidth, newheight);*/
+	for (int j = 0; j < tf.height; j++) {
+		ydif = tf.height/2 - j;
+		for (int i = 0; i < tf.width; i++) {
+			xdif = tf.width/2 - i;
+			int xidx = tf.width/2 + (-xdif*cosa - ydif*sina);
+			int yidx = tf.height/2 + (xdif*sina - ydif*cosa);
+			if (xidx < tf.width && yidx < tf.height) {
+				/*printf("x: %d, y: %d\n", xidx, yidx);*/
+				int dstidx = j*tf.width*tf.bpp + i*tf.bpp;
+				int srcidx = yidx*tf.width*tf.bpp + xidx*tf.bpp;
+
+				memcpy(rot_data + dstidx, tf.data + srcidx, tf.bpp);
+			}
+		}
+	}
+
+	/*png->IHDR_chunk.width = newwidth;*/
+	/*png->IHDR_chunk.height = newheight;*/
+
+	png_tform_free(&tf);
+	/*png_write(png, rot_data, newlength, 0);*/
+	png_write(png, rot_data, tf.len, 0);
+	free(rot_data);
 	return 1;
 }
