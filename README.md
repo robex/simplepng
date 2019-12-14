@@ -7,6 +7,7 @@ Compilation:
 Example usage (rotate an image 90 degrees clockwise and save it to disk):
 
 ```
+#include "png.h"
 void rotate(char *filename)
 {
 	struct PNG png;
