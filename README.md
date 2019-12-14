@@ -1,4 +1,4 @@
-## Easy to use png library
+## Easy to use PNG library
 
 Compilation:
 
@@ -19,3 +19,5 @@ void rotate(char *filename)
 	png_close(&png);
 }
 ```
+
+**Warning**: PNG standard is not fully implemented. Support for working with things like black/white bitmaps and interlaced images will hopefully be added in the future.
